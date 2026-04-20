@@ -1,26 +1,33 @@
-/**
- * This file is the entry point for the React app, it sets up the root
- * element and renders the App component to the DOM.
- *
- * It is included in `src/index.html`.
- */
-
-import { StrictMode } from "react";
+// src/frontend/frontend.tsx
+import React from "react";
 import { createRoot } from "react-dom/client";
-import { App } from "./App";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import "./index.css";
+import { AuthGate } from "./AuthGate";
+import { LoginPage } from "./pages/LoginPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
+import { UsersPage } from "./pages/UsersPage";
+import { UserDetailPage } from "./pages/UserDetailPage";
+import { ServersPage } from "./pages/ServersPage";
+import { ThreeXUiPage } from "./pages/ThreeXUiPage";
+import { ToastProvider } from "./components/terminal/Toasts";
 
-const elem = document.getElementById("root")!;
-const app = (
-  <StrictMode>
-    <App />
-  </StrictMode>
+createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route element={<AuthGate />}>
+            <Route path="/" element={<Navigate to="/users" replace />} />
+            <Route path="/users" element={<UsersPage />} />
+            <Route path="/users/:id" element={<UserDetailPage />} />
+            <Route path="/servers" element={<ServersPage />} />
+            <Route path="/three-x-ui" element={<ThreeXUiPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
+  </React.StrictMode>
 );
-
-if (import.meta.hot) {
-  // With hot module reloading, `import.meta.hot.data` is persisted.
-  const root = (import.meta.hot.data.root ??= createRoot(elem));
-  root.render(app);
-} else {
-  // The hot module reloading API is not available in production.
-  createRoot(elem).render(app);
-}
