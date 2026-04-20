@@ -89,7 +89,7 @@ export async function deleteMissingExternalEmails(panelId: number, keep: string[
   const result = await db`
     DELETE FROM configs
     WHERE three_x_ui_server_id = ${panelId}
-      AND external_email <> ALL(${keep})`;
+      AND external_email NOT IN ${db(keep)}`;
   return toNum(result.count ?? 0);
 }
 
