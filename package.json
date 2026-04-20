@@ -30,6 +30,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@noble/ciphers": "^2.2.0",
     "@types/bcryptjs": "^3.0.0",
     "@types/bun": "latest",
     "@types/react": "^19",

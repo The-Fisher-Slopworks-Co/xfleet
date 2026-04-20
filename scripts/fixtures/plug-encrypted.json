@@ -1,0 +1,5 @@
+{
+  "secret_key_base": "test-secret-key-base-64-chars-at-least-AAAAAAAAAAAAAAAAAAAAAA",
+  "plaintext": "the magic word is squeamish ossifrage",
+  "ciphertext": "XCP.7VdRgWFtO0KYE9q0JhJwZ67Lt1Brn-Nmp0t3nSF4s4FSHYKgvw-tJbOojaP58Ps7SAbKtGFE-ZsDm0_hTx9B9ZKvI2Yc1agXCoFY5UA"
+}
