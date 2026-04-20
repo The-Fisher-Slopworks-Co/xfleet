@@ -1,6 +1,6 @@
 # e_ui_ts
 
-Bun + TypeScript rebuild of the Elixir `e_ui` VPN admin panel, schema-compatible with the original.
+Bun + TypeScript rebuild of the Elixir `e_ui` VPN admin panel.
 
 ## Prereqs
 
@@ -23,15 +23,6 @@ createdb eui
 bun install
 bun run migrate
 bun run dev
-```
-
-## One-shot migration from the Elixir app
-
-Copy `OLD_DATABASE_URL`, `OLD_SECRET_KEY_BASE` into `.env`, then:
-
-```sh
-bun run migrate:elixir -- --dry-run   # inspect
-bun run migrate:elixir -- --force     # actually write (destination must be empty)
 ```
 
 ## Tests
