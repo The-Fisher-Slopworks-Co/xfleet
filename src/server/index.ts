@@ -10,6 +10,7 @@ import { serversRoutes } from "./routes/servers";
 import { configsRoutes } from "./routes/configs";
 import { threeXUiRoutes } from "./routes/threeXUi";
 import { subscriptionRoutes } from "./routes/subscription";
+import { extSubRoutes } from "./routes/extSub";
 import { eventsRoutes } from "./routes/events";
 import index from "../frontend/index.html";
 
@@ -25,6 +26,7 @@ const routes = {
   ...serversRoutes(env),
   ...configsRoutes(env),
   ...threeXUiRoutes(env, cipher, hub),
+  ...extSubRoutes(env, cipher, hub),
   ...eventsRoutes(env, hub),
   // SPA fallback — serve index.html for all unmatched routes
   "/*": index,

@@ -10,6 +10,7 @@ import { UsersPage } from "./pages/UsersPage";
 import { UserDetailPage } from "./pages/UserDetailPage";
 import { ServersPage } from "./pages/ServersPage";
 import { ThreeXUiPage } from "./pages/ThreeXUiPage";
+import { ExtSubPage } from "./pages/ExtSubPage";
 import { ToastProvider } from "./components/terminal/Toasts";
 
 createRoot(document.getElementById("root")!).render(
@@ -24,6 +25,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/users/:id" element={<UserDetailPage />} />
             <Route path="/servers" element={<ServersPage />} />
             <Route path="/three-x-ui" element={<ThreeXUiPage />} />
+            <Route path="/ext-sub" element={<ExtSubPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
