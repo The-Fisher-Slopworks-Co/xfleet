@@ -26,7 +26,7 @@ if (!TEST_URL) {
 
   const env = {
     profileTitle: "VPN", adminUsername: "", adminPasswordHash: "", sessionSecret: "",
-    masterKey: "", databaseUrl: "", port: 0, publicBaseUrl: "",
+    masterKey: "", databaseUrl: "", port: 0, publicBaseUrl: "https://vpn.example.com",
   } satisfies Env;
 
   test("unknown token returns 404", async () => {
@@ -78,6 +78,64 @@ if (!TEST_URL) {
     expect(lines[0]).toBe("vless://x#eu");
     expect(lines[1]).toBe(`vless://ext1#${encodeURIComponent("provX · HK-01")}`);
     expect(lines[2]).toBe("vmess://ext2#provX");
+  });
+
+  test("browser user-agent returns install page instead of subscription text", async () => {
+    await Users.create({ username: "alice", token: "abc" });
+    const routes = subscriptionRoutes(env);
+    const res = await routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", {
+          headers: { "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15" },
+        }),
+        { params: { token: "abc" } },
+      ),
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/html");
+    const body = await res.text();
+    expect(body).toContain("v2RayTun");
+    expect(body).toContain("apps.apple.com");
+    expect(body).toContain("play.google.com");
+    expect(body).toContain("https://vpn.example.com/sub/abc");
+  });
+
+  test("non-browser user-agent returns plain-text subscription", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    const s = await Servers.create({ name: "eu" });
+    await Configs.create({ user_id: u.id, server_id: s.id, config: "vless://x", tag: null });
+    const routes = subscriptionRoutes(env);
+    const res = await routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", { headers: { "user-agent": "v2raytun/android" } }),
+        { params: { token: "abc" } },
+      ),
+    );
+    expect(res.headers.get("content-type")).toContain("text/plain");
+    expect(await res.text()).toBe("vless://x#eu");
+  });
+
+  test("missing user-agent returns plain-text subscription", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    const s = await Servers.create({ name: "eu" });
+    await Configs.create({ user_id: u.id, server_id: s.id, config: "vless://x", tag: null });
+    const routes = subscriptionRoutes(env);
+    const res = await routes["/sub/:token"].GET(
+      Object.assign(new Request("http://x/sub/abc"), { params: { token: "abc" } }),
+    );
+    expect(res.headers.get("content-type")).toContain("text/plain");
+    expect(await res.text()).toBe("vless://x#eu");
+  });
+
+  test("browser user-agent on unknown token still returns 404", async () => {
+    const routes = subscriptionRoutes(env);
+    const res = await routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/nope", { headers: { "user-agent": "Mozilla/5.0" } }),
+        { params: { token: "nope" } },
+      ),
+    );
+    expect(res.status).toBe(404);
   });
 
   test("ext-sub lines excluded when user has no assignment", async () => {
