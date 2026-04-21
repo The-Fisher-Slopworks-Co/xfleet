@@ -7,9 +7,9 @@ const HKDF_SALT = new TextEncoder().encode("xfleet-field-v1");
 const HKDF_INFO = new TextEncoder().encode("aes-gcm-key");
 
 export async function makeCipher(masterKeyB64: string): Promise<Cipher> {
-  let raw: Uint8Array;
+  let raw: Uint8Array<ArrayBuffer>;
   try {
-    raw = new Uint8Array(Buffer.from(masterKeyB64, "base64"));
+    raw = toArrayBufferView(Buffer.from(masterKeyB64, "base64"));
   } catch {
     throw new Error("MASTER_KEY must be base64");
   }
@@ -58,6 +58,12 @@ function b64url(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString("base64url");
 }
 
-function fromB64url(s: string): Uint8Array {
-  return new Uint8Array(Buffer.from(s, "base64url"));
+function fromB64url(s: string): Uint8Array<ArrayBuffer> {
+  return toArrayBufferView(Buffer.from(s, "base64url"));
+}
+
+function toArrayBufferView(src: Uint8Array): Uint8Array<ArrayBuffer> {
+  const copy = new Uint8Array(new ArrayBuffer(src.byteLength));
+  copy.set(src);
+  return copy;
 }

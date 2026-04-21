@@ -33,7 +33,7 @@ test("decrypt rejects tampered ciphertext", async () => {
   const parts = envelope.split(":");
   // flip a bit in the ciphertext chunk
   const ct = Buffer.from(parts[3]!, "base64url");
-  ct[0] ^= 0x01;
+  ct[0] = (ct[0] ?? 0) ^ 0x01;
   const bad = `${parts[0]}:${parts[1]}:${parts[2]}:${ct.toString("base64url")}`;
   await expect(cipher.decrypt(bad)).rejects.toThrow();
 });
