@@ -22,6 +22,9 @@ openssl rand -hex 32                    # SESSION_SECRET
 openssl rand -base64 32                 # MASTER_KEY
 bun scripts/hash-password.ts 'pass'     # ADMIN_PASSWORD_HASH
 # then fill .env manually
+# NOTE: ADMIN_PASSWORD_HASH must be double-quoted with \$ escaping in .env:
+#   ADMIN_PASSWORD_HASH="\$2b\$10\$..."
+# Both docker compose and Bun's dotenv loader correctly strip \$ → $.
 
 createdb xfleet
 bun install
