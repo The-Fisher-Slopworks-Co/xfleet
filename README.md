@@ -13,7 +13,7 @@ Useful if you're self-hosting a VPN for yourself and a few people and don't want
 
 ## Setup
 
-# For local dev, `docker compose up -d` starts Postgres with the `xfleet` and `xfleet_test` databases pre-created.
+For local dev, `docker compose up -d` starts Postgres with the `xfleet` and `xfleet_test` databases pre-created.
 
 ```sh
 cp .env.example .env
