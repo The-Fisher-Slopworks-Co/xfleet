@@ -5,7 +5,7 @@ export function ConfirmButton(props: {
   label: string;
   confirm?: string;
   variant?: "destructive" | "default" | "secondary";
-  onConfirm: () => void | Promise<void>;
+  onConfirm: () => void | Promise<unknown>;
 }) {
   return (
     <Button
