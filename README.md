@@ -1,6 +1,10 @@
-# e_ui_ts
+# eui
 
-Bun + TypeScript rebuild of the Elixir `e_ui` VPN admin panel.
+An admin panel that sits in front of [3X-UI](https://github.com/MHSanaei/3x-ui).
+
+3X-UI is fine with one server and a few clients. Once you have more of either, you end up logging into separate panels, copying UUIDs around, and pasting share links into chats by hand. eui does that part for you — add a user once, it shows up on every server, with a share link you can send.
+
+Useful if you're self-hosting a VPN for yourself and a few people and don't want it to feel like a job.
 
 ## Prereqs
 
