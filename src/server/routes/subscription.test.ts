@@ -80,7 +80,7 @@ if (!TEST_URL) {
     expect(lines[2]).toBe("vmess://ext2#provX");
   });
 
-  test("browser user-agent returns install page instead of subscription text", async () => {
+  test("browser user-agent redirects to the SPA install page", async () => {
     await Users.create({ username: "alice", token: "abc" });
     const routes = subscriptionRoutes(env);
     const res = await routes["/sub/:token"].GET(
@@ -91,13 +91,27 @@ if (!TEST_URL) {
         { params: { token: "abc" } },
       ),
     );
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/install/abc");
+  });
+
+  test("public sub api returns username and canonical URL", async () => {
+    await Users.create({ username: "alice", token: "abc" });
+    const routes = subscriptionRoutes(env);
+    const res = await routes["/api/public/sub/:token"].GET(
+      Object.assign(new Request("http://x/api/public/sub/abc"), { params: { token: "abc" } }),
+    );
     expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toContain("text/html");
-    const body = await res.text();
-    expect(body).toContain("v2RayTun");
-    expect(body).toContain("apps.apple.com");
-    expect(body).toContain("play.google.com");
-    expect(body).toContain("https://vpn.example.com/sub/abc");
+    const body = await res.json();
+    expect(body).toEqual({ username: "alice", subUrl: "https://vpn.example.com/sub/abc" });
+  });
+
+  test("public sub api returns 404 for unknown token", async () => {
+    const routes = subscriptionRoutes(env);
+    const res = await routes["/api/public/sub/:token"].GET(
+      Object.assign(new Request("http://x/api/public/sub/nope"), { params: { token: "nope" } }),
+    );
+    expect(res.status).toBe(404);
   });
 
   test("non-browser user-agent returns plain-text subscription", async () => {

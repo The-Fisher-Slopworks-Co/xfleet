@@ -19,8 +19,10 @@ await runMigrations();
 const cipher = await makeCipher(env.masterKey);
 const hub = makeSseHub();
 
+const sub = subscriptionRoutes(env);
 const routes = {
-  "/sub/:token": subscriptionRoutes(env)["/sub/:token"],
+  "/sub/:token": sub["/sub/:token"],
+  "/api/public/sub/:token": sub["/api/public/sub/:token"],
   ...authRoutes(env),
   ...usersRoutes(env),
   ...serversRoutes(env),
