@@ -12,6 +12,7 @@ import { threeXUiRoutes } from "./routes/threeXUi";
 import { subscriptionRoutes } from "./routes/subscription";
 import { extSubRoutes } from "./routes/extSub";
 import { eventsRoutes } from "./routes/events";
+import { healthRoutes } from "./routes/health";
 import index from "../frontend/index.html";
 
 const env = loadEnv();
@@ -23,6 +24,7 @@ const sub = subscriptionRoutes(env);
 const routes = {
   "/sub/:token": sub["/sub/:token"],
   "/api/public/sub/:token": sub["/api/public/sub/:token"],
+  ...healthRoutes(),
   ...authRoutes(env),
   ...usersRoutes(env),
   ...serversRoutes(env),
