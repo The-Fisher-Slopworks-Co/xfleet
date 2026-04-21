@@ -1,0 +1,16 @@
+.git
+.gitignore
+node_modules
+dist
+.env
+.env.*
+!.env.example
+.worktrees
+.idea
+.DS_Store
+coverage
+*.log
+docker-compose*.yml
+Dockerfile
+README.md
+docs
