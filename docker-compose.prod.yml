@@ -23,12 +23,12 @@ services:
     environment:
       PORT: 3000
       DATABASE_URL: postgres://xfleet:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/xfleet
-      ADMIN_USERNAME: ${ADMIN_USERNAME}
-      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH}
-      SESSION_SECRET: ${SESSION_SECRET}
-      MASTER_KEY: ${MASTER_KEY}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?ADMIN_USERNAME must be set in .env}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?ADMIN_PASSWORD_HASH must be set in .env}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set in .env}
+      MASTER_KEY: ${MASTER_KEY:?MASTER_KEY must be set in .env}
       PROFILE_TITLE: ${PROFILE_TITLE:-VPN}
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?PUBLIC_BASE_URL must be set in .env}
     ports:
       - "3000:3000"
 

@@ -39,6 +39,3 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .env
 .env.local
 dist/
-
-# Temp data
-tmp
