@@ -1,7 +1,9 @@
 // src/server/sseHub.ts
 export type SyncEvent =
   | { type: "sync_started"; serverId: number }
-  | { type: "sync_complete"; serverId: number; result: Record<string, unknown> | { error: string } };
+  | { type: "sync_complete"; serverId: number; result: Record<string, unknown> | { error: string } }
+  | { type: "ext_sub_started"; sourceId: number }
+  | { type: "ext_sub_complete"; sourceId: number; result: Record<string, unknown> | { error: string } };
 
 export type SseHub = {
   broadcast: (event: SyncEvent) => void;

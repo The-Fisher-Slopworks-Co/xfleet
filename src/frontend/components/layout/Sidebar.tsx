@@ -6,6 +6,7 @@ const items = [
   { to: "/users", label: "./users" },
   { to: "/servers", label: "./servers" },
   { to: "/three-x-ui", label: "./3xui" },
+  { to: "/ext-sub", label: "./ext-sub" },
 ];
 
 export function Sidebar() {

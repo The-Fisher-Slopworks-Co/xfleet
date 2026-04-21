@@ -43,11 +43,38 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const extSubSourceCreateSchema = z.object({
+  name: z.string().min(1),
+  url: z.string().url(),
+  user_agent: z.string().default(""),
+  app_version: z.string().default(""),
+  device_model: z.string().default(""),
+  ver_os: z.string().default(""),
+  device_os: z.string().default(""),
+  hwid: z.string().default(""),
+});
+export const extSubSourceUpdateSchema = z.object({
+  name: z.string().min(1).optional(),
+  url: z.string().url().optional(),
+  user_agent: z.string().optional(),
+  app_version: z.string().optional(),
+  device_model: z.string().optional(),
+  ver_os: z.string().optional(),
+  device_os: z.string().optional(),
+  hwid: z.string().optional(),
+});
+export const extSubAssignSchema = z.object({
+  source_ids: z.array(z.number().int().positive()),
+});
+
 export type UserCreate = z.infer<typeof userCreateSchema>;
 export type ServerCreate = z.infer<typeof serverCreateSchema>;
 export type ConfigCreate = z.infer<typeof configCreateSchema>;
 export type ThreeXUiCreate = z.infer<typeof threeXUiCreateSchema>;
 export type ThreeXUiUpdate = z.infer<typeof threeXUiUpdateSchema>;
+export type ExtSubSourceCreate = z.infer<typeof extSubSourceCreateSchema>;
+export type ExtSubSourceUpdate = z.infer<typeof extSubSourceUpdateSchema>;
+export type ExtSubAssign = z.infer<typeof extSubAssignSchema>;
 
 export type ParsedUrl = { host: string; port: number; web_base_path: string; use_tls: boolean };
 
