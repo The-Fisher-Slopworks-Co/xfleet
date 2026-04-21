@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
 import { AuthGate } from "./AuthGate";
 import { LoginPage } from "./pages/LoginPage";
+import { InstallPage } from "./pages/InstallPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { UsersPage } from "./pages/UsersPage";
 import { UserDetailPage } from "./pages/UserDetailPage";
@@ -19,6 +20,8 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/install/:token" element={<InstallPage />} />
+          <Route path="/sub/:token" element={<InstallPage />} />
           <Route element={<AuthGate />}>
             <Route path="/" element={<Navigate to="/users" replace />} />
             <Route path="/users" element={<UsersPage />} />
