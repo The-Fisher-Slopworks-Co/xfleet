@@ -10,12 +10,12 @@ export function issueSession(username: string, secret: string, opts: { iat?: num
   const payloadB64 = Buffer.from(JSON.stringify({ u: username, iat })).toString("base64url");
   const mac = hmac(payloadB64, secret);
   const value = `${payloadB64}.${mac}`;
-  const cookie = `eui_session=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${MAX_AGE_SECONDS}${process.env.NODE_ENV === "production" ? "; Secure" : ""}`;
+  const cookie = `xfleet_session=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${MAX_AGE_SECONDS}${process.env.NODE_ENV === "production" ? "; Secure" : ""}`;
   return { cookie, value };
 }
 
 export function clearSessionCookie(): string {
-  return `eui_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${process.env.NODE_ENV === "production" ? "; Secure" : ""}`;
+  return `xfleet_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${process.env.NODE_ENV === "production" ? "; Secure" : ""}`;
 }
 
 export function verifySession(value: string | null | undefined, secret: string): SessionPayload | null {
@@ -41,7 +41,7 @@ export function readSessionCookie(header: string | null): string | null {
   if (!header) return null;
   for (const part of header.split(";")) {
     const [k, ...rest] = part.trim().split("=");
-    if (k === "eui_session") return rest.join("=");
+    if (k === "xfleet_session") return rest.join("=");
   }
   return null;
 }

@@ -8,7 +8,7 @@ export function TerminalHeader({ username }: { username: string }) {
   return (
     <header className="border-b border-border px-4 py-2 flex items-center justify-between text-sm">
       <div className="text-primary">
-        <span className="text-muted-foreground">{username}@eui:</span>
+        <span className="text-muted-foreground">{username}@xfleet:</span>
         <span>~{loc.pathname}</span>
         <span className="caret" />
       </div>

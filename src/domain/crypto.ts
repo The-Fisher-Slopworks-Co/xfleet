@@ -3,7 +3,7 @@ export type Cipher = {
   decrypt: (envelope: string) => Promise<string>;
 };
 
-const HKDF_SALT = new TextEncoder().encode("eui-field-v1");
+const HKDF_SALT = new TextEncoder().encode("xfleet-field-v1");
 const HKDF_INFO = new TextEncoder().encode("aes-gcm-key");
 
 export async function makeCipher(masterKeyB64: string): Promise<Cipher> {
