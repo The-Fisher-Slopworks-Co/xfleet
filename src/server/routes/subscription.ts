@@ -8,6 +8,14 @@ import type { Env } from "../env";
 const IOS_URL = "https://apps.apple.com/en/app/v2raytun/id6476628951";
 const ANDROID_URL = "https://play.google.com/store/apps/details?id=com.v2raytun.android";
 
+type AltApp = { name: string; platforms: string; url: string };
+const ALT_APPS: AltApp[] = [
+  { name: "v2rayNG", platforms: "Android", url: "https://github.com/2dust/v2rayNG" },
+  { name: "NekoBox", platforms: "Android", url: "https://github.com/MatsuriDayo/NekoBoxForAndroid" },
+  { name: "Hiddify", platforms: "iOS · Android · Desktop", url: "https://hiddify.com/" },
+  { name: "Throne", platforms: "Desktop", url: "https://github.com/throneproj/Throne" },
+];
+
 function isBrowser(userAgent: string | null): boolean {
   return !!userAgent && userAgent.startsWith("Mozilla/");
 }
@@ -20,9 +28,16 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+function altList(): string {
+  return ALT_APPS
+    .map(a => `        <li><a href="${a.url}">${escapeHtml(a.name)}</a><span class="plat">[ ${escapeHtml(a.platforms)} ]</span></li>`)
+    .join("\n");
+}
+
 function installPage(subUrl: string, username: string): string {
   const url = escapeHtml(subUrl);
   const user = escapeHtml(username);
+  const alts = altList();
   return `<!doctype html>
 <html lang="ru">
 <head>
@@ -130,6 +145,15 @@ function installPage(subUrl: string, username: string): string {
     background: rgba(0, 0, 0, 0.3);
   }
   .arrow { color: var(--fg-dim); }
+  section.alt { border-style: dashed; }
+  section.alt h2 { color: var(--fg); font-size: 14px; }
+  .alt-note { color: var(--fg-dim); font-size: 12.5px; margin: 0 0 12px; }
+  .alt-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+  .alt-list li { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+  .alt-list li::marker { content: none; }
+  .alt-list .plat { color: var(--fg-dim); font-size: 12px; }
+  .alt-list a { color: var(--primary); text-decoration: none; border-bottom: 1px dashed var(--border); }
+  .alt-list a:hover { color: var(--fg-bright); border-bottom-color: var(--primary); }
   .lang-bar {
     display: flex; align-items: center; gap: 10px;
     border: 1px solid var(--border);
@@ -160,7 +184,7 @@ function installPage(subUrl: string, username: string): string {
     </div>
 
     <section lang="ru" data-section="ru">
-      <span class="tag">// ru</span>
+      <span class="tag">// ru · рекомендуется</span>
       <h2>установка v2RayTun</h2>
       <ol>
         <li>Установите приложение:
@@ -176,8 +200,17 @@ function installPage(subUrl: string, username: string): string {
       </ol>
     </section>
 
+    <section class="alt" lang="ru" data-section="ru">
+      <span class="tag">// ru · альтернативы</span>
+      <h2>другие совместимые приложения</h2>
+      <p class="alt-note">Подписка работает с любым клиентом VLESS/VMess. В каждом из них есть пункт «Добавить подписку / из буфера обмена» — скопируйте ссылку выше и вставьте её в приложение.</p>
+      <ul class="alt-list">
+${alts}
+      </ul>
+    </section>
+
     <section lang="en" data-section="en" hidden>
-      <span class="tag">// en</span>
+      <span class="tag">// en · recommended</span>
       <h2>install v2RayTun</h2>
       <ol>
         <li>Install the app:
@@ -191,6 +224,15 @@ function installPage(subUrl: string, username: string): string {
         <li>Tap <kbd>+</kbd> in the top-right corner.</li>
         <li>Choose <b>"Import config from Clipboard"</b>.</li>
       </ol>
+    </section>
+
+    <section class="alt" lang="en" data-section="en" hidden>
+      <span class="tag">// en · alternatives</span>
+      <h2>other compatible apps</h2>
+      <p class="alt-note">The subscription works with any VLESS/VMess client. Each app has an "Add subscription / from clipboard" option — copy the link above and paste it into the app.</p>
+      <ul class="alt-list">
+${alts}
+      </ul>
     </section>
   </main>
   <script>
