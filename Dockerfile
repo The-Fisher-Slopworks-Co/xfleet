@@ -20,4 +20,4 @@ COPY --from=builder --chown=bun:bun /app /app
 USER bun
 ENV NODE_ENV=production
 EXPOSE 3000
-CMD ["sh", "-c", "bun run migrate && exec bun run start"]
+CMD ["bun", "run", "start"]
