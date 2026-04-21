@@ -6,7 +6,7 @@ const SECRET = "a".repeat(64);
 
 test("issue/verify round-trip", () => {
   const { cookie, value } = issueSession("admin", SECRET);
-  expect(cookie.startsWith("eui_session=")).toBe(true);
+  expect(cookie.startsWith("xfleet_session=")).toBe(true);
   const parsed = verifySession(value, SECRET);
   expect(parsed?.u).toBe("admin");
   expect(parsed?.iat).toBeGreaterThan(0);
@@ -32,7 +32,7 @@ test("verify rejects expired cookie", () => {
 
 test("readSessionCookie parses cookie header", async () => {
   const { readSessionCookie } = await import("./session");
-  expect(readSessionCookie("a=1; eui_session=abc.def; b=2")).toBe("abc.def");
+  expect(readSessionCookie("a=1; xfleet_session=abc.def; b=2")).toBe("abc.def");
   expect(readSessionCookie("x=1")).toBeNull();
   expect(readSessionCookie(null)).toBeNull();
 });

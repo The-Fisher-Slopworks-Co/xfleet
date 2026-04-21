@@ -1,8 +1,8 @@
-# eui
+# xfleet
 
 An admin panel that sits in front of [3X-UI](https://github.com/MHSanaei/3x-ui).
 
-3X-UI is fine with one server and a few clients. Once you have more of either, you end up logging into separate panels, copying UUIDs around, and pasting share links into chats by hand. eui does that part for you — add a user once, it shows up on every server, with a share link you can send.
+3X-UI is fine with one server and a few clients. Once you have more of either, you end up logging into separate panels, copying UUIDs around, and pasting share links into chats by hand. xfleet does that part for you — add a user once, it shows up on every server, with a share link you can send.
 
 Useful if you're self-hosting a VPN for yourself and a few people and don't want it to feel like a job.
 
@@ -13,7 +13,7 @@ Useful if you're self-hosting a VPN for yourself and a few people and don't want
 
 ## Setup
 
-# For local dev, `docker compose up -d` starts Postgres with the `eui` and `eui_test` databases pre-created.
+# For local dev, `docker compose up -d` starts Postgres with the `xfleet` and `xfleet_test` databases pre-created.
 
 ```sh
 cp .env.example .env
@@ -23,7 +23,7 @@ openssl rand -base64 32                 # MASTER_KEY
 bun scripts/hash-password.ts 'pass'     # ADMIN_PASSWORD_HASH
 # then fill .env manually
 
-createdb eui
+createdb xfleet
 bun install
 bun run migrate
 bun run dev
@@ -32,8 +32,8 @@ bun run dev
 ## Tests
 
 ```sh
-createdb eui_test
-TEST_DATABASE_URL=postgres://$USER@localhost:5432/eui_test bun test
+createdb xfleet_test
+TEST_DATABASE_URL=postgres://$USER@localhost:5432/xfleet_test bun test
 ```
 
 ## Deploy

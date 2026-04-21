@@ -19,7 +19,7 @@ export function LoginPage() {
   );
 
   // If already authed, bounce in
-  if (typeof document !== "undefined" && document.cookie.includes("eui_session=")) {
+  if (typeof document !== "undefined" && document.cookie.includes("xfleet_session=")) {
     return <Navigate to="/users" replace />;
   }
 

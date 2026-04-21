@@ -50,4 +50,4 @@ const server = Bun.serve({
   },
 });
 
-console.log(`🚀 eui_ts running at ${server.url}`);
+console.log(`🚀 xfleet running at ${server.url}`);

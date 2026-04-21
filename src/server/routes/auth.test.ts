@@ -24,7 +24,7 @@ test("login sets cookie on success", async () => {
     new Request("http://x/api/auth/login", { method: "POST", body: JSON.stringify({ username: "admin", password: "hunter2" }) }),
   );
   expect(res.status).toBe(200);
-  expect(res.headers.get("set-cookie")).toMatch(/^eui_session=[^;]+/);
+  expect(res.headers.get("set-cookie")).toMatch(/^xfleet_session=[^;]+/);
 });
 
 test("me returns 401 without cookie", async () => {
