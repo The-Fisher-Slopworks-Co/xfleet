@@ -69,7 +69,7 @@ export function InstallPage() {
         <LangBar lang={lang} onChange={setLang} />
 
         <Section variant="recommended" tag={t.tagRecommended} title={t.recTitle}>
-          <ol className="list-decimal pl-5 space-y-2.5 marker:text-muted-foreground">
+          <ol className="list-decimal pl-5 ml-4 space-y-2.5 marker:text-muted-foreground">
             <li>
               {t.step1}
               <div className="flex flex-wrap gap-2 mt-2">
@@ -89,6 +89,25 @@ export function InstallPage() {
               {t.step5Pre} <b className="text-foreground">{t.step5Bold}</b>{t.step5Post}
             </li>
           </ol>
+        </Section>
+
+        <Section variant="recommended" tag={t.tagTest} title={t.testTitle}>
+          <ol className="list-decimal pl-5 ml-4 space-y-2.5 marker:text-muted-foreground">
+            <li>
+              {t.testStep1Pre} <Kbd>⋮</Kbd> {t.testStep1Post}
+            </li>
+            <li>
+              {t.testStep2Pre} <b className="text-foreground">{t.testStep2Bold}</b>{t.testStep2Post}
+            </li>
+            <li>
+              {t.testStep3Pre}{" "}
+              {t.testStep3Green}
+              {t.testStep3Mid}{" "}
+              <span className="text-destructive">{t.testStep3Dead}</span>
+              {t.testStep3Post}
+            </li>
+          </ol>
+          <p className="text-xs text-muted-foreground mt-3">{t.testNote}</p>
         </Section>
 
         <Section variant="alt" tag={t.tagAlt} title={t.altTitle}>
@@ -198,8 +217,10 @@ function StoreLink({ href, children }: { href: string; children: React.ReactNode
 
 const TEXT: Record<Lang, {
   tagRecommended: string;
+  tagTest: string;
   tagAlt: string;
   recTitle: string;
+  testTitle: string;
   altTitle: string;
   altNote: string;
   step1: string;
@@ -210,11 +231,24 @@ const TEXT: Record<Lang, {
   step5Pre: string;
   step5Bold: string;
   step5Post: string;
+  testStep1Pre: string;
+  testStep1Post: string;
+  testStep2Pre: string;
+  testStep2Bold: string;
+  testStep2Post: string;
+  testStep3Pre: string;
+  testStep3Green: string;
+  testStep3Mid: string;
+  testStep3Dead: string;
+  testStep3Post: string;
+  testNote: string;
 }> = {
   ru: {
     tagRecommended: "// ru · рекомендуется",
+    tagTest: "// ru · проверка соединения",
     tagAlt: "// ru · альтернативы",
     recTitle: "установка v2RayTun",
+    testTitle: "как проверить все конфиги",
     altTitle: "другие совместимые приложения",
     altNote: "Подписка работает с любым клиентом VLESS/VMess. В каждом из них есть пункт «Добавить подписку / из буфера обмена» — скопируйте ссылку выше и вставьте её в приложение.",
     step1: "Установите приложение:",
@@ -225,11 +259,24 @@ const TEXT: Record<Lang, {
     step5Pre: "Выберите",
     step5Bold: "«Импорт из буфера обмена»",
     step5Post: ".",
+    testStep1Pre: "Нажмите",
+    testStep1Post: "(три точки по вертикали) в правом верхнем углу.",
+    testStep2Pre: "Выберите",
+    testStep2Bold: "«Время отклика конфигов»",
+    testStep2Post: ".",
+    testStep3Pre: "Дождитесь результатов:",
+    testStep3Green: "зелёное число",
+    testStep3Mid: " (например, 100 ms) — конфиг рабочий;",
+    testStep3Dead: "«?ms»",
+    testStep3Post: " — конфиг не работает.",
+    testNote: "Один и тот же VPN может работать из дома и не работать через мобильный интернет — рекомендуется регулярно проверять соединение.",
   },
   en: {
     tagRecommended: "// en · recommended",
+    tagTest: "// en · connection check",
     tagAlt: "// en · alternatives",
     recTitle: "install v2RayTun",
+    testTitle: "how to test all configs",
     altTitle: "other compatible apps",
     altNote: "The subscription works with any VLESS/VMess client. Each app has an \"Add subscription / from clipboard\" option — copy the link above and paste it into the app.",
     step1: "Install the app:",
@@ -240,5 +287,16 @@ const TEXT: Record<Lang, {
     step5Pre: "Choose",
     step5Bold: "\"Import config from Clipboard\"",
     step5Post: ".",
+    testStep1Pre: "Tap",
+    testStep1Post: "(vertical three dots) in the top-right corner.",
+    testStep2Pre: "Choose",
+    testStep2Bold: "\"Real delay all configuration\"",
+    testStep2Post: ".",
+    testStep3Pre: "Wait for the results:",
+    testStep3Green: "a green number",
+    testStep3Mid: " (e.g. 100 ms) means the config works;",
+    testStep3Dead: "\"?ms\"",
+    testStep3Post: " means the config is not working.",
+    testNote: "The same VPN may work at home but fail on mobile data — we recommend checking the connection regularly.",
   },
 };
