@@ -1,6 +1,7 @@
 // src/domain/scheduler.ts
 import * as ThreeXUi from "../db/threeXUi";
 import * as ExtSubSources from "../db/extSubSources";
+import * as SubFetchJournal from "../db/subFetchJournal";
 import { syncServer } from "./sync";
 import { refreshSource } from "./extSubSync";
 import { login, listInbounds } from "./threeXUiClient";
@@ -8,8 +9,9 @@ import type { Cipher } from "./crypto";
 import type { SseHub } from "../server/sseHub";
 
 const INTERVAL_MS = 5 * 60_000;
+const RETENTION_INTERVAL_MS = 24 * 60 * 60_000;
 
-export function startScheduler(args: { hub: SseHub; cipher: Cipher }): () => void {
+export function startScheduler(args: { hub: SseHub; cipher: Cipher; retentionDays: number }): () => void {
   if (process.env.NODE_ENV === "test") return () => {};
 
   const panelInFlight = new Map<number, Promise<unknown>>();
@@ -56,12 +58,23 @@ export function startScheduler(args: { hub: SseHub; cipher: Cipher }): () => voi
     }
   }
 
+  async function tickRetention() {
+    try {
+      const deleted = await SubFetchJournal.pruneOlderThan(args.retentionDays);
+      if (deleted > 0) console.log(`[sub-journal] pruned ${deleted} rows older than ${args.retentionDays}d`);
+    } catch (err) {
+      console.error("[sub-journal] prune failed:", err);
+    }
+  }
+
   function tick() {
     void tickPanels();
     void tickExtSub();
   }
 
   tick();
+  void tickRetention();
   const handle = setInterval(tick, INTERVAL_MS);
-  return () => clearInterval(handle);
+  const retentionHandle = setInterval(() => void tickRetention(), RETENTION_INTERVAL_MS);
+  return () => { clearInterval(handle); clearInterval(retentionHandle); };
 }

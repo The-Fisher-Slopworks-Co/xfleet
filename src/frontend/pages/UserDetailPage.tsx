@@ -1,5 +1,5 @@
 // src/frontend/pages/UserDetailPage.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { useJSON } from "../hooks/useJSON";
@@ -11,12 +11,16 @@ import { DataTable } from "../components/terminal/DataTable";
 import { TerminalDialog } from "../components/terminal/TerminalDialog";
 import { FormField } from "../components/terminal/FormField";
 import { ConfirmButton } from "../components/terminal/ConfirmButton";
+import { JournalStatusBadge } from "../components/terminal/JournalStatusBadge";
+import { useSubFetchEvents, type SubFetchEventRow } from "../hooks/useSyncEvents";
 import { useToast } from "../components/terminal/Toasts";
 
 type User = { id: number; username: string; token: string };
 type Server = { id: number; name: string };
 type ConfigRow = { id: number; user_id: number; server_id: number; config: string; tag: string | null; server: Server };
 type ExtSubSource = { id: number; name: string };
+type JournalRow = SubFetchEventRow;
+const RECENT_JOURNAL_LIMIT = 10;
 
 export function UserDetailPage() {
   const { id } = useParams();
@@ -25,6 +29,19 @@ export function UserDetailPage() {
   const servers = useJSON<Server[]>("/api/admin/servers");
   const extSources = useJSON<ExtSubSource[]>("/api/admin/ext-sub");
   const assignments = useJSON<{ source_ids: number[] }>(`/api/admin/users/${id}/ext-sub`);
+  const journal = useJSON<JournalRow[]>(`/api/admin/users/${id}/sub-journal?limit=${RECENT_JOURNAL_LIMIT}`);
+  const [liveJournal, setLiveJournal] = useState<JournalRow[]>([]);
+  useSubFetchEvents(row => {
+    setLiveJournal(prev => (prev.some(r => r.id === row.id) ? prev : [row, ...prev].slice(0, RECENT_JOURNAL_LIMIT * 2)));
+  });
+  const recentJournal = useMemo(() => {
+    const numericId = Number(id);
+    const seen = new Set<number>();
+    return [...liveJournal, ...(journal.data ?? [])]
+      .filter(r => r.user_id === numericId)
+      .filter(r => (seen.has(r.id) ? false : (seen.add(r.id), true)))
+      .slice(0, RECENT_JOURNAL_LIMIT);
+  }, [liveJournal, journal.data, id]);
   const [modal, setModal] = useState<null | { kind: "new" } | { kind: "edit"; row: ConfigRow }>(null);
   const [serverId, setServerId] = useState<number | "">("");
   const [config, setConfig] = useState("");
@@ -110,7 +127,7 @@ export function UserDetailPage() {
         />
       </section>
 
-      <section>
+      <section className="mb-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-primary uppercase tracking-wider">ext-sub sources/</h2>
           <Button onClick={() => setAssignModalOpen(true)}>[ manage ]</Button>
@@ -121,6 +138,41 @@ export function UserDetailPage() {
           ]}
           rows={assignedSources}
           emptyMessage="no sources assigned"
+        />
+      </section>
+
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-primary uppercase tracking-wider">recent fetches/</h2>
+          <Link to={`/sub-journal?user_id=${id}`}>
+            <Button variant="secondary" size="sm">[ view all ]</Button>
+          </Link>
+        </div>
+        <DataTable
+          columns={[
+            {
+              key: "time",
+              label: "time",
+              render: r => (
+                <span className="font-mono text-xs whitespace-nowrap">
+                  {new Date(r.inserted_at).toISOString().slice(0, 19).replace("T", " ")}
+                </span>
+              ),
+            },
+            { key: "status", label: "status", render: r => <JournalStatusBadge code={r.status_code} /> },
+            { key: "ip", label: "ip", render: r => <code className="text-xs">{r.ip ?? "—"}</code> },
+            {
+              key: "ua",
+              label: "user-agent",
+              render: r => (
+                <span className="text-xs break-all">
+                  {r.user_agent ? (r.user_agent.length > 60 ? r.user_agent.slice(0, 60) + "…" : r.user_agent) : "—"}
+                </span>
+              ),
+            },
+          ]}
+          rows={recentJournal}
+          emptyMessage="no fetches recorded"
         />
       </section>
 
@@ -195,3 +247,4 @@ export function UserDetailPage() {
     </>
   );
 }
+

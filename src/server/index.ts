@@ -10,6 +10,7 @@ import { serversRoutes } from "./routes/servers";
 import { configsRoutes } from "./routes/configs";
 import { threeXUiRoutes } from "./routes/threeXUi";
 import { subscriptionRoutes } from "./routes/subscription";
+import { subFetchJournalRoutes } from "./routes/subFetchJournal";
 import { extSubRoutes } from "./routes/extSub";
 import { eventsRoutes } from "./routes/events";
 import { healthRoutes } from "./routes/health";
@@ -20,7 +21,7 @@ await runMigrations();
 const cipher = await makeCipher(env.masterKey);
 const hub = makeSseHub();
 
-const sub = subscriptionRoutes(env);
+const sub = subscriptionRoutes(env, hub);
 const routes = {
   "/sub/:token": sub["/sub/:token"],
   "/api/public/sub/:token": sub["/api/public/sub/:token"],
@@ -31,12 +32,13 @@ const routes = {
   ...configsRoutes(env),
   ...threeXUiRoutes(env, cipher, hub),
   ...extSubRoutes(env, cipher, hub),
+  ...subFetchJournalRoutes(env),
   ...eventsRoutes(env, hub),
   // SPA fallback — serve index.html for all unmatched routes
   "/*": index,
 };
 
-startScheduler({ hub, cipher });
+startScheduler({ hub, cipher, retentionDays: env.subJournalRetentionDays });
 
 const server = Bun.serve({
   port: env.port,
