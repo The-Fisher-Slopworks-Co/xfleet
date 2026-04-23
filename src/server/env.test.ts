@@ -18,6 +18,27 @@ test("accepts a fully-populated env", () => {
   expect(e.port).toBe(3000);
   expect(e.adminUsername).toBe("admin");
   expect(e.profileTitle).toBe("VPN");
+  expect(e.trustProxy).toBe(false);
+});
+
+test("TRUST_PROXY=true parses to trustProxy: true", () => {
+  expect(loadEnv({ ...good, TRUST_PROXY: "true" }).trustProxy).toBe(true);
+});
+
+test("TRUST_PROXY rejects non-boolean strings", () => {
+  expect(() => loadEnv({ ...good, TRUST_PROXY: "yes" })).toThrow(/TRUST_PROXY/);
+});
+
+test("SUB_JOURNAL_RETENTION_DAYS defaults to 90", () => {
+  expect(loadEnv(good).subJournalRetentionDays).toBe(90);
+});
+
+test("SUB_JOURNAL_RETENTION_DAYS accepts positive integer", () => {
+  expect(loadEnv({ ...good, SUB_JOURNAL_RETENTION_DAYS: "30" }).subJournalRetentionDays).toBe(30);
+});
+
+test("SUB_JOURNAL_RETENTION_DAYS rejects 0 (disallows infinite retention)", () => {
+  expect(() => loadEnv({ ...good, SUB_JOURNAL_RETENTION_DAYS: "0" })).toThrow(/SUB_JOURNAL_RETENTION_DAYS/);
 });
 
 test("rejects missing required var", () => {

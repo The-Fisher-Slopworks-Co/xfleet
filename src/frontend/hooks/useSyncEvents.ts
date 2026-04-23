@@ -1,11 +1,24 @@
 // src/frontend/hooks/useSyncEvents.ts
 import { useEffect, useRef, useState } from "react";
 
+export type SubFetchEventRow = {
+  id: number;
+  user_id: number | null;
+  attempted_token: string;
+  ip: string | null;
+  user_agent: string | null;
+  headers: Record<string, string>;
+  status_code: number;
+  inserted_at: string;
+  user: { id: number; username: string } | null;
+};
+
 export type SyncEvent =
   | { type: "sync_started"; serverId: number }
   | { type: "sync_complete"; serverId: number; result: Record<string, unknown> | { error: string } }
   | { type: "ext_sub_started"; sourceId: number }
-  | { type: "ext_sub_complete"; sourceId: number; result: Record<string, unknown> | { error: string } };
+  | { type: "ext_sub_complete"; sourceId: number; result: Record<string, unknown> | { error: string } }
+  | { type: "sub_fetch"; row: SubFetchEventRow };
 
 export function useSyncEvents(onEvent: (e: SyncEvent) => void): void {
   // Keep the callback in a ref so the EventSource is opened exactly once per mount.
@@ -22,8 +35,15 @@ export function useSyncEvents(onEvent: (e: SyncEvent) => void): void {
     es.addEventListener("sync_complete", handle);
     es.addEventListener("ext_sub_started", handle);
     es.addEventListener("ext_sub_complete", handle);
+    es.addEventListener("sub_fetch", handle);
     return () => es.close();
   }, []);
+}
+
+export function useSubFetchEvents(onFetch: (row: SubFetchEventRow) => void): void {
+  useSyncEvents(e => {
+    if (e.type === "sub_fetch") onFetch(e.row);
+  });
 }
 
 export function useLatestSyncState(): {

@@ -6,6 +6,7 @@ import * as Users from "./users";
 import * as Servers from "./servers";
 import * as Configs from "./configs";
 import * as ThreeXUi from "./threeXUi";
+import * as SubFetchJournal from "./subFetchJournal";
 
 const TEST_URL = process.env.TEST_DATABASE_URL;
 if (!TEST_URL) {
@@ -17,7 +18,7 @@ if (!TEST_URL) {
   });
   beforeEach(async () => {
     const db = sql();
-    await db`TRUNCATE users, servers, configs, three_x_ui_servers RESTART IDENTITY CASCADE`;
+    await db`TRUNCATE users, servers, configs, three_x_ui_servers, sub_fetch_journal RESTART IDENTITY CASCADE`;
   });
 
   test("users CRUD round-trip", async () => {
@@ -73,5 +74,55 @@ if (!TEST_URL) {
     await ThreeXUi.updateSyncStatus(t.id, new Date(), "ok");
     const after = await ThreeXUi.get(t.id);
     expect(after?.last_sync_status).toBe("ok");
+  });
+
+  test("sub_fetch_journal records and lists with user join", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    await SubFetchJournal.record({
+      user_id: u.id, attempted_token: "abc", ip: "10.0.0.1",
+      user_agent: "v2raytun", headers: { "user-agent": "v2raytun" }, status_code: 200,
+    });
+    await SubFetchJournal.record({
+      user_id: null, attempted_token: "nope", ip: null,
+      user_agent: null, headers: {}, status_code: 404,
+    });
+    const rows = await SubFetchJournal.list({ limit: 100 });
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.status_code).toBe(404);
+    expect(rows[0]!.user).toBeNull();
+    expect(rows[1]!.user?.username).toBe("alice");
+    expect(rows[1]!.headers["user-agent"]).toBe("v2raytun");
+    // ON DELETE SET NULL: removing the user nulls out the FK but keeps the row
+    await Users.remove(u.id);
+    const afterDelete = await SubFetchJournal.list({ limit: 100 });
+    expect(afterDelete).toHaveLength(2);
+    expect(afterDelete.every(r => r.user_id === null)).toBe(true);
+  });
+
+  test("sub_fetch_journal pruneOlderThan deletes rows past the retention window", async () => {
+    const db = sql();
+    const u = await Users.create({ username: "alice", token: "abc" });
+    // Insert one row with a timestamp older than 91 days
+    await db`
+      INSERT INTO sub_fetch_journal (user_id, attempted_token, ip, user_agent, headers, status_code, inserted_at)
+      VALUES (${u.id}, 'old', '1.1.1.1', 'ua', '{}'::jsonb, 200, now() - interval '91 days')`;
+    // And a fresh one
+    await SubFetchJournal.record({
+      user_id: u.id, attempted_token: "new", ip: "1.1.1.1",
+      user_agent: "ua", headers: {}, status_code: 200,
+    });
+    const deleted = await SubFetchJournal.pruneOlderThan(90);
+    expect(deleted).toBe(1);
+    const remaining = await SubFetchJournal.list({ limit: 100 });
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]!.attempted_token).toBe("new");
+  });
+
+  test("sub_fetch_journal pruneOlderThan returns 0 when nothing matches", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    await SubFetchJournal.record({
+      user_id: u.id, attempted_token: "new", ip: null, user_agent: null, headers: {}, status_code: 200,
+    });
+    expect(await SubFetchJournal.pruneOlderThan(90)).toBe(0);
   });
 }

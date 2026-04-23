@@ -1,9 +1,22 @@
 // src/server/sseHub.ts
+export type SubFetchEventRow = {
+  id: number;
+  user_id: number | null;
+  attempted_token: string;
+  ip: string | null;
+  user_agent: string | null;
+  headers: Record<string, string>;
+  status_code: number;
+  inserted_at: string;
+  user: { id: number; username: string } | null;
+};
+
 export type SyncEvent =
   | { type: "sync_started"; serverId: number }
   | { type: "sync_complete"; serverId: number; result: Record<string, unknown> | { error: string } }
   | { type: "ext_sub_started"; sourceId: number }
-  | { type: "ext_sub_complete"; sourceId: number; result: Record<string, unknown> | { error: string } };
+  | { type: "ext_sub_complete"; sourceId: number; result: Record<string, unknown> | { error: string } }
+  | { type: "sub_fetch"; row: SubFetchEventRow };
 
 export type SseHub = {
   broadcast: (event: SyncEvent) => void;

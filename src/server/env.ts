@@ -16,6 +16,8 @@ const schema = z.object({
   }, "MASTER_KEY must be base64 of 32 bytes"),
   PROFILE_TITLE: z.string().default("VPN"),
   PUBLIC_BASE_URL: z.string().url(),
+  TRUST_PROXY: z.enum(["true", "false"]).default("false").transform(v => v === "true"),
+  SUB_JOURNAL_RETENTION_DAYS: z.coerce.number().int().min(1).default(90),
 });
 
 export type Env = {
@@ -27,6 +29,8 @@ export type Env = {
   masterKey: string;
   profileTitle: string;
   publicBaseUrl: string;
+  trustProxy: boolean;
+  subJournalRetentionDays: number;
 };
 
 export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
@@ -45,5 +49,7 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     masterKey: v.MASTER_KEY,
     profileTitle: v.PROFILE_TITLE,
     publicBaseUrl: v.PUBLIC_BASE_URL,
+    trustProxy: v.TRUST_PROXY,
+    subJournalRetentionDays: v.SUB_JOURNAL_RETENTION_DAYS,
   };
 }

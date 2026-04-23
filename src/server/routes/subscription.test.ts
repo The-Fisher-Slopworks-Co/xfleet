@@ -7,8 +7,10 @@ import * as Configs from "../../db/configs";
 import * as ExtSubSources from "../../db/extSubSources";
 import * as ExtSubLinks from "../../db/extSubLinks";
 import * as ExtSubAssignments from "../../db/extSubAssignments";
+import * as SubFetchJournal from "../../db/subFetchJournal";
 import { subscriptionRoutes } from "./subscription";
 import type { Env } from "../env";
+import type { SseHub, SyncEvent } from "../sseHub";
 
 const TEST_URL = process.env.TEST_DATABASE_URL;
 if (!TEST_URL) {
@@ -21,12 +23,14 @@ if (!TEST_URL) {
   beforeEach(async () => {
     const db = sql();
     await db`TRUNCATE users, servers, configs, three_x_ui_servers,
-             ext_sub_sources, ext_sub_links, ext_sub_user_sources RESTART IDENTITY CASCADE`;
+             ext_sub_sources, ext_sub_links, ext_sub_user_sources,
+             sub_fetch_journal RESTART IDENTITY CASCADE`;
   });
 
   const env = {
     profileTitle: "VPN", adminUsername: "", adminPasswordHash: "", sessionSecret: "",
     masterKey: "", databaseUrl: "", port: 0, publicBaseUrl: "https://vpn.example.com",
+    trustProxy: false, subJournalRetentionDays: 90,
   } satisfies Env;
 
   test("unknown token returns 404", async () => {
@@ -150,6 +154,112 @@ if (!TEST_URL) {
       ),
     );
     expect(res.status).toBe(404);
+  });
+
+  test("records a journal row on successful fetch with headers and UA", async () => {
+    await Users.create({ username: "alice", token: "abc" });
+    const routes = subscriptionRoutes(env);
+    await routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", {
+          headers: { "user-agent": "v2raytun/ios 1.2", "x-device-model": "iPhone15,2", cookie: "secret=1" },
+        }),
+        { params: { token: "abc" } },
+      ),
+    );
+    const entries = await SubFetchJournal.list({ limit: 10 });
+    expect(entries).toHaveLength(1);
+    const row = entries[0]!;
+    expect(row.status_code).toBe(200);
+    expect(row.user?.username).toBe("alice");
+    expect(row.attempted_token).toBe("abc");
+    expect(row.user_agent).toBe("v2raytun/ios 1.2");
+    expect(row.headers["user-agent"]).toBe("v2raytun/ios 1.2");
+    expect(row.headers["x-device-model"]).toBe("iPhone15,2");
+    expect(row.headers["cookie"]).toBeUndefined();
+  });
+
+  test("records a 404 journal row with null user_id on unknown token", async () => {
+    const routes = subscriptionRoutes(env);
+    await routes["/sub/:token"].GET(
+      Object.assign(new Request("http://x/sub/nope"), { params: { token: "nope" } }),
+    );
+    const entries = await SubFetchJournal.list({ limit: 10 });
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.status_code).toBe(404);
+    expect(entries[0]!.user_id).toBeNull();
+    expect(entries[0]!.attempted_token).toBe("nope");
+  });
+
+  test("records a 302 journal row on browser redirect", async () => {
+    await Users.create({ username: "alice", token: "abc" });
+    const routes = subscriptionRoutes(env);
+    await routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", { headers: { "user-agent": "Mozilla/5.0" } }),
+        { params: { token: "abc" } },
+      ),
+    );
+    const entries = await SubFetchJournal.list({ limit: 10 });
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.status_code).toBe(302);
+    expect(entries[0]!.user?.username).toBe("alice");
+  });
+
+  test("uses X-Forwarded-For when TRUST_PROXY is enabled", async () => {
+    await Users.create({ username: "alice", token: "abc" });
+    const routes = subscriptionRoutes({ ...env, trustProxy: true });
+    await routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", {
+          headers: { "x-forwarded-for": "203.0.113.7, 10.0.0.1" },
+        }),
+        { params: { token: "abc" } },
+      ),
+    );
+    const entries = await SubFetchJournal.list({ limit: 10 });
+    expect(entries[0]!.ip).toBe("203.0.113.7");
+  });
+
+  test("ignores X-Forwarded-For when TRUST_PROXY is disabled", async () => {
+    await Users.create({ username: "alice", token: "abc" });
+    const routes = subscriptionRoutes(env);
+    await routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", {
+          headers: { "x-forwarded-for": "203.0.113.7" },
+        }),
+        { params: { token: "abc" } },
+      ),
+    );
+    const entries = await SubFetchJournal.list({ limit: 10 });
+    expect(entries[0]!.ip).toBeNull();
+  });
+
+  test("broadcasts a sub_fetch event with the inserted row after journaling", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    const events: SyncEvent[] = [];
+    const fakeHub: SseHub = {
+      broadcast: e => { events.push(e); },
+      subscribe: () => ({ readable: new ReadableStream(), close: () => {} }),
+      subscriberCount: () => 0,
+    };
+    const routes = subscriptionRoutes(env, fakeHub);
+    await routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", { headers: { "user-agent": "v2raytun" } }),
+        { params: { token: "abc" } },
+      ),
+    );
+    expect(events).toHaveLength(1);
+    const e = events[0]!;
+    expect(e.type).toBe("sub_fetch");
+    if (e.type !== "sub_fetch") throw new Error("unreachable");
+    expect(e.row.status_code).toBe(200);
+    expect(e.row.user?.username).toBe("alice");
+    expect(e.row.user_id).toBe(u.id);
+    expect(typeof e.row.inserted_at).toBe("string");
+    expect(e.row.id).toBeGreaterThan(0);
   });
 
   test("ext-sub lines excluded when user has no assignment", async () => {
