@@ -66,6 +66,15 @@ export function InstallPage() {
           <span className="text-primary">$</span> install v2raytun
         </h1>
 
+        <a
+          href={`/sub/${token}?sudo=1`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block mb-5 border border-primary text-primary text-xs px-3 py-1.5 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_12px_-2px_var(--primary)] transition-all"
+        >
+          [ sudo show configs ]
+        </a>
+
         <LangBar lang={lang} onChange={setLang} />
 
         <Section variant="recommended" tag={t.tagRecommended} title={t.recTitle}>
