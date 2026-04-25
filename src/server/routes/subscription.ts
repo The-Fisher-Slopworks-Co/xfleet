@@ -22,6 +22,7 @@ export function subscriptionRoutes(env: Env, hub: SseHub | null = null) {
         const ip = clientIp(req, server, env);
         const headers = headersToRecord(req);
         const userAgent = truncate(req.headers.get("user-agent"), MAX_USER_AGENT_LEN);
+        const sudo = new URL(req.url).searchParams.get("sudo") === "1";
 
         const journal = async (status_code: number) => {
           try {
@@ -50,7 +51,7 @@ export function subscriptionRoutes(env: Env, hub: SseHub | null = null) {
           await journal(404);
           return new Response("", { status: 404, headers: { "content-type": "text/plain" } });
         }
-        if (isBrowser(userAgent)) {
+        if (isBrowser(userAgent) && !sudo) {
           await journal(302);
           return new Response(null, {
             status: 302,
