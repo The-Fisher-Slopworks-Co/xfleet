@@ -62,3 +62,7 @@ docker compose -f docker-compose.prod.yml up -d
 ```
 
 The app runs migrations automatically on container start and publishes port 3000. Put your own reverse proxy (nginx/Caddy/etc.) in front — remember `proxy_buffering off;` for the SSE endpoint, and bind to `127.0.0.1:3000` in the compose file if you don't want port 3000 publicly exposed on the host.
+
+## License
+
+AGPL-3.0-or-later. See [LICENSE](LICENSE).

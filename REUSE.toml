@@ -1,0 +1,22 @@
+version = 1
+
+[[annotations]]
+path = "**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 The Fisher Slopworks Co"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# shadcn/ui components are copied verbatim from the shadcn/ui registry
+# (https://ui.shadcn.com), which is distributed under the MIT license.
+[[annotations]]
+path = [
+  "src/frontend/components/ui/button.tsx",
+  "src/frontend/components/ui/card.tsx",
+  "src/frontend/components/ui/input.tsx",
+  "src/frontend/components/ui/label.tsx",
+  "src/frontend/components/ui/select.tsx",
+  "src/frontend/components/ui/textarea.tsx",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2023 shadcn"
+SPDX-License-Identifier = "MIT"
