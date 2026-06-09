@@ -1,24 +1,11 @@
 // src/server/routes/subFetchJournal.ts
 import * as SubFetchJournal from "../../db/subFetchJournal";
 import { requireAuth } from "../middleware";
-import { json } from "../http";
+import { json, parseId, parseLimit } from "../http";
 import type { Env } from "../env";
 
 const DEFAULT_LIMIT = 200;
 const MAX_LIMIT = 1000;
-
-function parseLimit(raw: string | null): number {
-  if (!raw) return DEFAULT_LIMIT;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n <= 0) return DEFAULT_LIMIT;
-  return Math.min(Math.floor(n), MAX_LIMIT);
-}
-
-function parseId(raw: string | null): number | undefined {
-  if (!raw) return undefined;
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : undefined;
-}
 
 export function subFetchJournalRoutes(env: Env) {
   const guard = (req: Request) => {
@@ -34,7 +21,7 @@ export function subFetchJournalRoutes(env: Env) {
         const rows = await SubFetchJournal.list({
           userId: parseId(url.searchParams.get("user_id")),
           beforeId: parseId(url.searchParams.get("before_id")),
-          limit: parseLimit(url.searchParams.get("limit")),
+          limit: parseLimit(url.searchParams.get("limit"), DEFAULT_LIMIT, MAX_LIMIT),
         });
         return json(rows);
       },
@@ -48,7 +35,7 @@ export function subFetchJournalRoutes(env: Env) {
         const rows = await SubFetchJournal.list({
           userId,
           beforeId: parseId(url.searchParams.get("before_id")),
-          limit: parseLimit(url.searchParams.get("limit")),
+          limit: parseLimit(url.searchParams.get("limit"), DEFAULT_LIMIT, MAX_LIMIT),
         });
         return json(rows);
       },

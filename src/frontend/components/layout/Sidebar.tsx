@@ -8,6 +8,7 @@ const items = [
   { to: "/three-x-ui", label: "./3xui" },
   { to: "/ext-sub", label: "./ext-sub" },
   { to: "/sub-journal", label: "./sub-journal" },
+  { to: "/blocklist", label: "./blocklist" },
 ];
 
 export function Sidebar() {

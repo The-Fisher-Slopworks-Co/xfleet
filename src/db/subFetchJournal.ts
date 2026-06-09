@@ -2,6 +2,8 @@
 import { sql, toNum, toNumOrNull } from "./client";
 import type { SQL } from "bun";
 
+export type BlockedBy = "device" | "ip";
+
 export type SubFetchJournalRow = {
   id: number;
   user_id: number | null;
@@ -10,6 +12,8 @@ export type SubFetchJournalRow = {
   user_agent: string | null;
   headers: Record<string, string>;
   status_code: number;
+  device_id: number | null;
+  blocked_by: BlockedBy | null;
   inserted_at: Date;
 };
 
@@ -24,6 +28,8 @@ export type RecordAttrs = {
   user_agent: string | null;
   headers: Record<string, string>;
   status_code: number;
+  device_id: number | null;
+  blocked_by: BlockedBy | null;
 };
 
 type Db = SQL;
@@ -43,6 +49,8 @@ function shape(r: any): SubFetchJournalRow {
     user_id: toNumOrNull(r.user_id),
     status_code: toNum(r.status_code),
     headers: parseHeaders(r.headers),
+    device_id: toNumOrNull(r.device_id),
+    blocked_by: r.blocked_by ?? null,
   };
 }
 
@@ -57,10 +65,11 @@ function shapeWithUser(r: any): SubFetchJournalWithUser {
 
 export async function record(attrs: RecordAttrs, db: Db = sql()): Promise<SubFetchJournalRow> {
   const rows = await db`
-    INSERT INTO sub_fetch_journal (user_id, attempted_token, ip, user_agent, headers, status_code)
+    INSERT INTO sub_fetch_journal (user_id, attempted_token, ip, user_agent, headers, status_code, device_id, blocked_by)
     VALUES (
       ${attrs.user_id}, ${attrs.attempted_token}, ${attrs.ip},
-      ${attrs.user_agent}, ${JSON.stringify(attrs.headers)}::jsonb, ${attrs.status_code}
+      ${attrs.user_agent}, ${JSON.stringify(attrs.headers)}::jsonb, ${attrs.status_code},
+      ${attrs.device_id}, ${attrs.blocked_by}
     )
     RETURNING *`;
   return shape(rows[0]!);

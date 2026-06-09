@@ -9,6 +9,8 @@ export type SubFetchEventRow = {
   user_agent: string | null;
   headers: Record<string, string>;
   status_code: number;
+  device_id: number | null;
+  blocked_by: "device" | "ip" | null;
   inserted_at: string;
   user: { id: number; username: string } | null;
 };

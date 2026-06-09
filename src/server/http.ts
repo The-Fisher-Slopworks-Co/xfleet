@@ -37,6 +37,19 @@ export async function readJson<T>(req: Request): Promise<T> {
   return (await req.json()) as T;
 }
 
+export function parseLimit(raw: string | null, def: number, max: number): number {
+  if (!raw) return def;
+  const n = Math.floor(Number(raw));
+  if (!Number.isFinite(n) || n <= 0) return def;
+  return Math.min(n, max);
+}
+
+export function parseId(raw: string | null): number | undefined {
+  if (!raw) return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : undefined;
+}
+
 import type { ZodIssue } from "zod";
 export function zodToErrors(issues: ZodIssue[]): Record<string, string[]> {
   const out: Record<string, string[]> = {};

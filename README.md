@@ -44,7 +44,6 @@ TEST_DATABASE_URL=postgres://$USER@localhost:5432/xfleet_test bun test
 Production command:
 
 ```sh
-bun run build
 bun run migrate
 bun run start
 ```

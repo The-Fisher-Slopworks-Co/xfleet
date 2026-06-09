@@ -11,6 +11,8 @@ import { configsRoutes } from "./routes/configs";
 import { threeXUiRoutes } from "./routes/threeXUi";
 import { subscriptionRoutes } from "./routes/subscription";
 import { subFetchJournalRoutes } from "./routes/subFetchJournal";
+import { devicesRoutes } from "./routes/devices";
+import { ipBlocklistRoutes } from "./routes/ipBlocklist";
 import { extSubRoutes } from "./routes/extSub";
 import { eventsRoutes } from "./routes/events";
 import { healthRoutes } from "./routes/health";
@@ -33,6 +35,8 @@ const routes = {
   ...threeXUiRoutes(env, cipher, hub),
   ...extSubRoutes(env, cipher, hub),
   ...subFetchJournalRoutes(env),
+  ...devicesRoutes(env),
+  ...ipBlocklistRoutes(env),
   ...eventsRoutes(env, hub),
   // SPA fallback — serve index.html for all unmatched routes
   "/*": index,

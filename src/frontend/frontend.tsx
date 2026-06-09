@@ -13,6 +13,7 @@ import { ServersPage } from "./pages/ServersPage";
 import { ThreeXUiPage } from "./pages/ThreeXUiPage";
 import { ExtSubPage } from "./pages/ExtSubPage";
 import { SubJournalPage } from "./pages/SubJournalPage";
+import { BlocklistPage } from "./pages/BlocklistPage";
 import { ToastProvider } from "./components/terminal/Toasts";
 
 createRoot(document.getElementById("root")!).render(
@@ -31,6 +32,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/three-x-ui" element={<ThreeXUiPage />} />
             <Route path="/ext-sub" element={<ExtSubPage />} />
             <Route path="/sub-journal" element={<SubJournalPage />} />
+            <Route path="/blocklist" element={<BlocklistPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>

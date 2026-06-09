@@ -67,6 +67,14 @@ export const extSubAssignSchema = z.object({
   source_ids: z.array(z.number().int().positive()),
 });
 
+export const deviceBlockSchema = z.object({ blocked: z.boolean() });
+export const deviceLabelSchema = z.object({ label: z.string().max(200).nullable() });
+// IP or CIDR; Postgres inet is the authoritative validator (route maps cast errors to 422).
+export const ipBlockCreateSchema = z.object({
+  cidr: z.string().trim().min(1).max(64),
+  note: z.string().max(500).optional().nullable(),
+});
+
 export type UserCreate = z.infer<typeof userCreateSchema>;
 export type ServerCreate = z.infer<typeof serverCreateSchema>;
 export type ConfigCreate = z.infer<typeof configCreateSchema>;
@@ -75,6 +83,9 @@ export type ThreeXUiUpdate = z.infer<typeof threeXUiUpdateSchema>;
 export type ExtSubSourceCreate = z.infer<typeof extSubSourceCreateSchema>;
 export type ExtSubSourceUpdate = z.infer<typeof extSubSourceUpdateSchema>;
 export type ExtSubAssign = z.infer<typeof extSubAssignSchema>;
+export type DeviceBlock = z.infer<typeof deviceBlockSchema>;
+export type DeviceLabel = z.infer<typeof deviceLabelSchema>;
+export type IpBlockCreate = z.infer<typeof ipBlockCreateSchema>;
 
 export type ParsedUrl = { host: string; port: number; web_base_path: string; use_tls: boolean };
 
