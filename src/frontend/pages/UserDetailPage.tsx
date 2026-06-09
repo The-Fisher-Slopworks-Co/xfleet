@@ -244,7 +244,7 @@ export function UserDetailPage() {
               label: "time",
               render: r => (
                 <span className="font-mono text-xs whitespace-nowrap">
-                  {new Date(r.inserted_at).toISOString().slice(0, 19).replace("T", " ")}
+                  {fmtDate(r.inserted_at)}
                 </span>
               ),
             },

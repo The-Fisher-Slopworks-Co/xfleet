@@ -7,6 +7,7 @@ import { TypewriterTitle } from "../components/terminal/TypewriterTitle";
 import { JournalStatusBadge } from "../components/terminal/JournalStatusBadge";
 import { Badge } from "../components/terminal/Badge";
 import { useSubFetchEvents, type SubFetchEventRow } from "../hooks/useSyncEvents";
+import { fmtDate } from "../lib/utils";
 
 type JournalRow = SubFetchEventRow;
 
@@ -145,7 +146,7 @@ function RowView(props: {
     <>
       <tr className={`border-b border-border/50 hover:bg-muted/40 ${striped ? "bg-muted/10" : ""}`}>
         <td className="px-3 py-2 align-top whitespace-nowrap font-mono text-xs">
-          {new Date(row.inserted_at).toISOString().slice(0, 19).replace("T", " ")}
+          {fmtDate(row.inserted_at)}
         </td>
         <td className="px-3 py-2 align-top">
           {row.user ? (

@@ -13,6 +13,7 @@ import { FormField } from "../components/terminal/FormField";
 import { ConfirmButton } from "../components/terminal/ConfirmButton";
 import { Badge } from "../components/terminal/Badge";
 import { useToast } from "../components/terminal/Toasts";
+import { fmtDate } from "../lib/utils";
 
 type PanelRow = {
   id: number; name: string; host: string; port: number; web_base_path: string;
@@ -77,7 +78,7 @@ export function ThreeXUiPage() {
           { key: "name", label: "name", render: r => r.name },
           { key: "url", label: "url", render: r => <code className="text-xs">{`${r.use_tls ? "https" : "http"}://${r.host}:${r.port}${r.web_base_path === "/" ? "" : r.web_base_path}`}</code> },
           { key: "vpn", label: "vpn server", render: r => r.vpn_server.name },
-          { key: "synced", label: "synced", render: r => r.last_synced_at ? new Date(r.last_synced_at).toISOString().slice(0, 19).replace("T", " ") : "never" },
+          { key: "synced", label: "synced", render: r => r.last_synced_at ? fmtDate(r.last_synced_at) : "never" },
           { key: "status", label: "status", render: r => {
             if (syncingIds.has(r.id)) return <Badge variant="warn">syncing</Badge>;
             if (!r.last_sync_status) return <Badge variant="muted">—</Badge>;
