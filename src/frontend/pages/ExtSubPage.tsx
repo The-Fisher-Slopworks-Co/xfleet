@@ -13,6 +13,7 @@ import { FormField } from "../components/terminal/FormField";
 import { ConfirmButton } from "../components/terminal/ConfirmButton";
 import { Badge } from "../components/terminal/Badge";
 import { useToast } from "../components/terminal/Toasts";
+import { fmtDate } from "../lib/utils";
 
 type SourceRow = {
   id: number; name: string;
@@ -94,7 +95,7 @@ export function ExtSubPage() {
         columns={[
           { key: "name", label: "name", render: r => r.name },
           { key: "ua", label: "user-agent", render: r => <code className="text-xs">{r.user_agent || "—"}</code> },
-          { key: "fetched", label: "fetched", render: r => r.last_fetched_at ? new Date(r.last_fetched_at).toISOString().slice(0, 19).replace("T", " ") : "never" },
+          { key: "fetched", label: "fetched", render: r => r.last_fetched_at ? fmtDate(r.last_fetched_at) : "never" },
           { key: "status", label: "status", render: r => {
             if (refreshingIds.has(r.id)) return <Badge variant="warn">refreshing</Badge>;
             if (!r.last_fetch_status) return <Badge variant="muted">—</Badge>;

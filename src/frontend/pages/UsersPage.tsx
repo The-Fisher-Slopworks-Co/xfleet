@@ -13,6 +13,7 @@ import { FormField } from "../components/terminal/FormField";
 import { ConfirmButton } from "../components/terminal/ConfirmButton";
 import { CopyButton } from "../components/terminal/CopyButton";
 import { useToast } from "../components/terminal/Toasts";
+import { fmtDate } from "../lib/utils";
 
 type UserRow = { id: number; username: string; token: string; inserted_at: string };
 
@@ -61,7 +62,7 @@ export function UsersPage() {
           { key: "id", label: "ID", render: r => r.id },
           { key: "username", label: "username", render: r => r.username },
           { key: "token", label: "token", render: r => <code className="text-xs">{r.token}</code> },
-          { key: "created", label: "created", render: r => new Date(r.inserted_at).toISOString().slice(0, 19).replace("T", " ") },
+          { key: "created", label: "created", render: r => fmtDate(r.inserted_at) },
         ]}
         rows={users ?? []}
         rowActions={row => (
