@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 import { Button } from "@/components/ui/button";
 import { TypewriterTitle } from "../components/terminal/TypewriterTitle";
 import { JournalStatusBadge } from "../components/terminal/JournalStatusBadge";
+import { Badge } from "../components/terminal/Badge";
 import { useSubFetchEvents, type SubFetchEventRow } from "../hooks/useSyncEvents";
 
 type JournalRow = SubFetchEventRow;
@@ -156,7 +157,11 @@ function RowView(props: {
           )}
         </td>
         <td className="px-3 py-2 align-top">
-          <JournalStatusBadge code={row.status_code} />
+          {row.blocked_by ? (
+            <Badge variant="err">{row.status_code} blocked/{row.blocked_by}</Badge>
+          ) : (
+            <JournalStatusBadge code={row.status_code} />
+          )}
         </td>
         <td className="px-3 py-2 align-top font-mono text-xs">{row.ip ?? "—"}</td>
         <td className="px-3 py-2 align-top text-xs">

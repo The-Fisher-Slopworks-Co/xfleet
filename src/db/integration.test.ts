@@ -7,6 +7,8 @@ import * as Servers from "./servers";
 import * as Configs from "./configs";
 import * as ThreeXUi from "./threeXUi";
 import * as SubFetchJournal from "./subFetchJournal";
+import * as Devices from "./devices";
+import * as IpBlocklist from "./ipBlocklist";
 
 const TEST_URL = process.env.TEST_DATABASE_URL;
 if (!TEST_URL) {
@@ -18,7 +20,7 @@ if (!TEST_URL) {
   });
   beforeEach(async () => {
     const db = sql();
-    await db`TRUNCATE users, servers, configs, three_x_ui_servers, sub_fetch_journal RESTART IDENTITY CASCADE`;
+    await db`TRUNCATE users, servers, configs, three_x_ui_servers, sub_fetch_journal, devices, ip_blocklist RESTART IDENTITY CASCADE`;
   });
 
   test("users CRUD round-trip", async () => {
@@ -81,10 +83,12 @@ if (!TEST_URL) {
     await SubFetchJournal.record({
       user_id: u.id, attempted_token: "abc", ip: "10.0.0.1",
       user_agent: "v2raytun", headers: { "user-agent": "v2raytun" }, status_code: 200,
+      device_id: null, blocked_by: null,
     });
     await SubFetchJournal.record({
       user_id: null, attempted_token: "nope", ip: null,
       user_agent: null, headers: {}, status_code: 404,
+      device_id: null, blocked_by: null,
     });
     const rows = await SubFetchJournal.list({ limit: 100 });
     expect(rows).toHaveLength(2);
@@ -110,6 +114,7 @@ if (!TEST_URL) {
     await SubFetchJournal.record({
       user_id: u.id, attempted_token: "new", ip: "1.1.1.1",
       user_agent: "ua", headers: {}, status_code: 200,
+      device_id: null, blocked_by: null,
     });
     const deleted = await SubFetchJournal.pruneOlderThan(90);
     expect(deleted).toBe(1);
@@ -122,7 +127,46 @@ if (!TEST_URL) {
     const u = await Users.create({ username: "alice", token: "abc" });
     await SubFetchJournal.record({
       user_id: u.id, attempted_token: "new", ip: null, user_agent: null, headers: {}, status_code: 200,
+      device_id: null, blocked_by: null,
     });
     expect(await SubFetchJournal.pruneOlderThan(90)).toBe(0);
+  });
+
+  test("devices block/label/listBlocked round-trip", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    const d = await Devices.upsertByHwid({ user_id: u.id, hwid: "HW1", ua: "happ/1.0", ip: "10.0.0.1" });
+    expect(d.is_blocked).toBe(false);
+    expect(await Devices.listBlocked({ limit: 100 })).toHaveLength(0);
+    await Devices.setBlocked(d.id, true);
+    await Devices.setLabel(d.id, "old phone");
+    const blocked = await Devices.listBlocked({ limit: 100 });
+    expect(blocked).toHaveLength(1);
+    expect(blocked[0]!.label).toBe("old phone");
+    expect(blocked[0]!.user.username).toBe("alice");
+    await Devices.remove(d.id);
+    expect(await Devices.listForUser(u.id)).toHaveLength(0);
+  });
+
+  test("listBlocked paginates by keyset (id DESC, before_id)", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    for (let i = 1; i <= 3; i++) {
+      const d = await Devices.upsertByHwid({ user_id: u.id, hwid: `HW${i}`, ua: null, ip: null });
+      await Devices.setBlocked(d.id, true);
+    }
+    const page1 = await Devices.listBlocked({ limit: 2 });
+    expect(page1.map(d => d.hwid)).toEqual(["HW3", "HW2"]);
+    const page2 = await Devices.listBlocked({ limit: 2, beforeId: page1[page1.length - 1]!.id });
+    expect(page2.map(d => d.hwid)).toEqual(["HW1"]);
+  });
+
+  test("ip_blocklist CRUD and duplicate rejection", async () => {
+    const row = await IpBlocklist.add({ cidr: "203.0.113.0/24", note: "abusers" });
+    expect(row.id).toBeGreaterThan(0);
+    expect(await IpBlocklist.list()).toHaveLength(1);
+    await expect(IpBlocklist.add({ cidr: "203.0.113.0/24", note: null })).rejects.toThrow();
+    expect(await IpBlocklist.isBlocked("203.0.113.42")).toBe(true);
+    expect(await IpBlocklist.isBlocked("198.51.100.1")).toBe(false);
+    await IpBlocklist.remove(row.id);
+    expect(await IpBlocklist.list()).toHaveLength(0);
   });
 }

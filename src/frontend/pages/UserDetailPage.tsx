@@ -12,14 +12,30 @@ import { TerminalDialog } from "../components/terminal/TerminalDialog";
 import { FormField } from "../components/terminal/FormField";
 import { ConfirmButton } from "../components/terminal/ConfirmButton";
 import { JournalStatusBadge } from "../components/terminal/JournalStatusBadge";
+import { Badge } from "../components/terminal/Badge";
+import { DeviceIdentity } from "../components/terminal/DeviceIdentity";
 import { useSubFetchEvents, type SubFetchEventRow } from "../hooks/useSyncEvents";
 import { useToast } from "../components/terminal/Toasts";
+import { fmtDate } from "@/lib/utils";
 
 type User = { id: number; username: string; token: string };
 type Server = { id: number; name: string };
 type ConfigRow = { id: number; user_id: number; server_id: number; config: string; tag: string | null; server: Server };
 type ExtSubSource = { id: number; name: string };
 type JournalRow = SubFetchEventRow;
+type DeviceRow = {
+  id: number;
+  user_id: number;
+  hwid: string | null;
+  fallback_ua: string | null;
+  fallback_ip: string | null;
+  label: string | null;
+  last_ua: string | null;
+  last_ip: string | null;
+  is_blocked: boolean;
+  first_seen_at: string;
+  last_seen_at: string;
+};
 const RECENT_JOURNAL_LIMIT = 10;
 
 export function UserDetailPage() {
@@ -30,9 +46,11 @@ export function UserDetailPage() {
   const extSources = useJSON<ExtSubSource[]>("/api/admin/ext-sub");
   const assignments = useJSON<{ source_ids: number[] }>(`/api/admin/users/${id}/ext-sub`);
   const journal = useJSON<JournalRow[]>(`/api/admin/users/${id}/sub-journal?limit=${RECENT_JOURNAL_LIMIT}`);
+  const devices = useJSON<DeviceRow[]>(`/api/admin/users/${id}/devices`);
   const [liveJournal, setLiveJournal] = useState<JournalRow[]>([]);
   useSubFetchEvents(row => {
     setLiveJournal(prev => (prev.some(r => r.id === row.id) ? prev : [row, ...prev].slice(0, RECENT_JOURNAL_LIMIT * 2)));
+    if (row.user_id === Number(id)) void devices.refetch();
   });
   const recentJournal = useMemo(() => {
     const numericId = Number(id);
@@ -63,6 +81,31 @@ export function UserDetailPage() {
   const del = useMutation((cfgId: number) => api.del(`/api/admin/configs/${cfgId}`), {
     onSuccess: async () => { await configs.refetch(); toast("config deleted"); },
   });
+
+  const [renameModal, setRenameModal] = useState<DeviceRow | null>(null);
+  const [labelInput, setLabelInput] = useState("");
+
+  const toggleBlock = useMutation(
+    (args: { deviceId: number; blocked: boolean }) =>
+      api.patch(`/api/admin/devices/${args.deviceId}/block`, { blocked: args.blocked }),
+    { onSuccess: async () => { await devices.refetch(); toast("device updated"); } },
+  );
+
+  const forgetDevice = useMutation((deviceId: number) => api.del(`/api/admin/devices/${deviceId}`), {
+    onSuccess: async () => { await devices.refetch(); toast("device forgotten"); },
+  });
+
+  const renameDevice = useMutation(
+    (args: { deviceId: number; label: string | null }) =>
+      api.patch(`/api/admin/devices/${args.deviceId}/label`, { label: args.label }),
+    { onSuccess: async () => { setRenameModal(null); await devices.refetch(); toast("device renamed"); } },
+  );
+
+  const openRename = (d: DeviceRow) => {
+    setRenameModal(d);
+    renameDevice.reset();
+    setLabelInput(d.label ?? "");
+  };
 
   const saveAssignments = useMutation(
     (sourceIds: number[]) => api.put(`/api/admin/users/${id}/ext-sub`, { source_ids: sourceIds }),
@@ -141,6 +184,52 @@ export function UserDetailPage() {
         />
       </section>
 
+      <section className="mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-primary uppercase tracking-wider">devices/</h2>
+        </div>
+        <DataTable
+          columns={[
+            { key: "identity", label: "identity", render: r => <DeviceIdentity device={r} /> },
+            { key: "label", label: "label", render: r => r.label ?? "—" },
+            { key: "last_ip", label: "last ip", render: r => <code className="text-xs">{r.last_ip ?? "—"}</code> },
+            {
+              key: "last_seen",
+              label: "last seen",
+              render: r => (
+                <span className="font-mono text-xs whitespace-nowrap">{fmtDate(r.last_seen_at)}</span>
+              ),
+            },
+            {
+              key: "status",
+              label: "status",
+              render: r => r.is_blocked ? <Badge variant="err">blocked</Badge> : <Badge variant="ok">active</Badge>,
+            },
+          ]}
+          rows={devices.data ?? []}
+          emptyMessage="no devices seen yet"
+          rowActions={row => (
+            <div className="flex gap-1 justify-end">
+              <Button size="sm" variant="secondary" onClick={() => openRename(row)}>label</Button>
+              <ConfirmButton
+                label={row.is_blocked ? "unblock" : "block"}
+                variant={row.is_blocked ? "secondary" : "destructive"}
+                confirm={row.is_blocked ? "unblock this device?" : "block this device?"}
+                onConfirm={() => toggleBlock.run({ deviceId: row.id, blocked: !row.is_blocked })}
+              />
+              <ConfirmButton
+                label="forget"
+                confirm="forget this device? it will reappear on its next fetch."
+                onConfirm={() => forgetDevice.run(row.id)}
+              />
+            </div>
+          )}
+        />
+        {(toggleBlock.topError || forgetDevice.topError) && (
+          <p className="text-destructive text-xs mt-2">! {toggleBlock.topError ?? forgetDevice.topError}</p>
+        )}
+      </section>
+
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-primary uppercase tracking-wider">recent fetches/</h2>
@@ -159,7 +248,13 @@ export function UserDetailPage() {
                 </span>
               ),
             },
-            { key: "status", label: "status", render: r => <JournalStatusBadge code={r.status_code} /> },
+            {
+              key: "status",
+              label: "status",
+              render: r => r.blocked_by
+                ? <Badge variant="err">{r.status_code} blocked/{r.blocked_by}</Badge>
+                : <JournalStatusBadge code={r.status_code} />,
+            },
             { key: "ip", label: "ip", render: r => <code className="text-xs">{r.ip ?? "—"}</code> },
             {
               key: "ua",
@@ -206,6 +301,26 @@ export function UserDetailPage() {
           <div className="flex gap-2 justify-end mt-4">
             <Button type="button" variant="secondary" onClick={() => setModal(null)}>cancel</Button>
             <Button type="submit" disabled={save.loading}>{save.loading ? "saving..." : "save"}</Button>
+          </div>
+        </form>
+      </TerminalDialog>
+
+      <TerminalDialog
+        open={renameModal !== null}
+        onOpenChange={v => !v && setRenameModal(null)}
+        title="device label"
+      >
+        <form onSubmit={e => {
+          e.preventDefault();
+          if (renameModal) void renameDevice.run({ deviceId: renameModal.id, label: labelInput.trim() || null });
+        }}>
+          <FormField label="label" error={renameDevice.fieldErrors.label}>
+            <Input value={labelInput} onChange={e => setLabelInput(e.target.value)} autoFocus />
+          </FormField>
+          {renameDevice.topError && <p className="text-destructive text-xs mb-2">! {renameDevice.topError}</p>}
+          <div className="flex gap-2 justify-end mt-4">
+            <Button type="button" variant="secondary" onClick={() => setRenameModal(null)}>cancel</Button>
+            <Button type="submit" disabled={renameDevice.loading}>{renameDevice.loading ? "saving..." : "save"}</Button>
           </div>
         </form>
       </TerminalDialog>

@@ -8,6 +8,8 @@ import * as ExtSubSources from "../../db/extSubSources";
 import * as ExtSubLinks from "../../db/extSubLinks";
 import * as ExtSubAssignments from "../../db/extSubAssignments";
 import * as SubFetchJournal from "../../db/subFetchJournal";
+import * as Devices from "../../db/devices";
+import * as IpBlocklist from "../../db/ipBlocklist";
 import { subscriptionRoutes } from "./subscription";
 import type { Env } from "../env";
 import type { SseHub, SyncEvent } from "../sseHub";
@@ -24,7 +26,7 @@ if (!TEST_URL) {
     const db = sql();
     await db`TRUNCATE users, servers, configs, three_x_ui_servers,
              ext_sub_sources, ext_sub_links, ext_sub_user_sources,
-             sub_fetch_journal RESTART IDENTITY CASCADE`;
+             sub_fetch_journal, devices, ip_blocklist RESTART IDENTITY CASCADE`;
   });
 
   const env = {
@@ -260,6 +262,170 @@ if (!TEST_URL) {
     expect(e.row.user_id).toBe(u.id);
     expect(typeof e.row.inserted_at).toBe("string");
     expect(e.row.id).toBeGreaterThan(0);
+  });
+
+  test("x-hwid fetch registers a hwid device and links the journal row", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    const routes = subscriptionRoutes({ ...env, trustProxy: true });
+    const res = await routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", {
+          headers: { "user-agent": "happ/1.0", "x-hwid": "HW1", "x-forwarded-for": "203.0.113.7" },
+        }),
+        { params: { token: "abc" } },
+      ),
+    );
+    expect(res.status).toBe(200);
+    const devices = await Devices.listForUser(u.id);
+    expect(devices).toHaveLength(1);
+    expect(devices[0]!.hwid).toBe("HW1");
+    expect(devices[0]!.last_ip).toBe("203.0.113.7");
+    const entries = await SubFetchJournal.list({ limit: 10 });
+    expect(entries[0]!.device_id).toBe(devices[0]!.id);
+    expect(entries[0]!.blocked_by).toBeNull();
+  });
+
+  test("repeat hwid fetches reuse the same device", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    const routes = subscriptionRoutes(env);
+    const fetchOnce = () => routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", { headers: { "user-agent": "happ/1.0", "x-hwid": "HW1" } }),
+        { params: { token: "abc" } },
+      ),
+    );
+    await fetchOnce();
+    await fetchOnce();
+    expect(await Devices.listForUser(u.id)).toHaveLength(1);
+  });
+
+  test("fetch without hwid registers a fallback device from ua+ip", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    const routes = subscriptionRoutes({ ...env, trustProxy: true });
+    await routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", {
+          headers: { "user-agent": "v2raytun/android", "x-forwarded-for": "203.0.113.7" },
+        }),
+        { params: { token: "abc" } },
+      ),
+    );
+    const devices = await Devices.listForUser(u.id);
+    expect(devices).toHaveLength(1);
+    expect(devices[0]!.hwid).toBeNull();
+    expect(devices[0]!.fallback_ua).toBe("v2raytun/android");
+    expect(devices[0]!.fallback_ip).toBe("203.0.113.7");
+  });
+
+  test("fetch without hwid and without ip does not register a device", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    const routes = subscriptionRoutes(env);
+    await routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", { headers: { "user-agent": "v2raytun/android" } }),
+        { params: { token: "abc" } },
+      ),
+    );
+    expect(await Devices.listForUser(u.id)).toHaveLength(0);
+  });
+
+  test("blocked device gets a stealth 404 and the journal records blocked_by=device", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    const s = await Servers.create({ name: "eu" });
+    await Configs.create({ user_id: u.id, server_id: s.id, config: "vless://x", tag: null });
+    const routes = subscriptionRoutes(env);
+    const fetchOnce = () => routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", { headers: { "user-agent": "happ/1.0", "x-hwid": "HW1" } }),
+        { params: { token: "abc" } },
+      ),
+    );
+    await fetchOnce();
+    const device = (await Devices.listForUser(u.id))[0]!;
+    await Devices.setBlocked(device.id, true);
+
+    const res = await fetchOnce();
+    expect(res.status).toBe(404);
+    expect(await res.text()).toBe("");
+    const entries = await SubFetchJournal.list({ limit: 10 });
+    expect(entries[0]!.status_code).toBe(404);
+    expect(entries[0]!.blocked_by).toBe("device");
+    expect(entries[0]!.device_id).toBe(device.id);
+  });
+
+  test("blocked device with a browser UA gets 404, not the install redirect", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    const routes = subscriptionRoutes({ ...env, trustProxy: true });
+    const fetchOnce = () => routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", {
+          headers: { "user-agent": "Mozilla/5.0", "x-forwarded-for": "203.0.113.7" },
+        }),
+        { params: { token: "abc" } },
+      ),
+    );
+    await fetchOnce();
+    const device = (await Devices.listForUser(u.id))[0]!;
+    await Devices.setBlocked(device.id, true);
+    const res = await fetchOnce();
+    expect(res.status).toBe(404);
+  });
+
+  test("blocked IP gets a stealth 404 with blocked_by=ip; the device is still tracked", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    await IpBlocklist.add({ cidr: "203.0.113.0/24", note: null });
+    const routes = subscriptionRoutes({ ...env, trustProxy: true });
+    const res = await routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", {
+          headers: { "user-agent": "happ/1.0", "x-hwid": "HW1", "x-forwarded-for": "203.0.113.77" },
+        }),
+        { params: { token: "abc" } },
+      ),
+    );
+    expect(res.status).toBe(404);
+    const entries = await SubFetchJournal.list({ limit: 10 });
+    expect(entries[0]!.blocked_by).toBe("ip");
+    expect(await Devices.listForUser(u.id)).toHaveLength(1);
+  });
+
+  test("IP outside a blocked CIDR is served normally", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    const s = await Servers.create({ name: "eu" });
+    await Configs.create({ user_id: u.id, server_id: s.id, config: "vless://x", tag: null });
+    await IpBlocklist.add({ cidr: "203.0.113.0/24", note: null });
+    const routes = subscriptionRoutes({ ...env, trustProxy: true });
+    const res = await routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", {
+          headers: { "user-agent": "happ/1.0", "x-forwarded-for": "198.51.100.7" },
+        }),
+        { params: { token: "abc" } },
+      ),
+    );
+    expect(res.status).toBe(200);
+  });
+
+  test("sub_fetch SSE event carries device_id and blocked_by", async () => {
+    const u = await Users.create({ username: "alice", token: "abc" });
+    const events: SyncEvent[] = [];
+    const fakeHub: SseHub = {
+      broadcast: e => { events.push(e); },
+      subscribe: () => ({ readable: new ReadableStream(), close: () => {} }),
+      subscriberCount: () => 0,
+    };
+    const routes = subscriptionRoutes(env, fakeHub);
+    await routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", { headers: { "user-agent": "happ/1.0", "x-hwid": "HW1" } }),
+        { params: { token: "abc" } },
+      ),
+    );
+    const device = (await Devices.listForUser(u.id))[0]!;
+    const e = events[0]!;
+    if (e.type !== "sub_fetch") throw new Error("unreachable");
+    expect(e.row.device_id).toBe(device.id);
+    expect(e.row.blocked_by).toBeNull();
   });
 
   test("ext-sub lines excluded when user has no assignment", async () => {

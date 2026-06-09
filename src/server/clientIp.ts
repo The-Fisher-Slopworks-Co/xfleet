@@ -9,6 +9,7 @@ const MAX_HEADER_COUNT = 64;
 
 export const MAX_USER_AGENT_LEN = 1024;
 export const MAX_TOKEN_LEN = 512;
+export const MAX_HWID_LEN = 256;
 
 function sanitizeIp(ip: string | null | undefined): string | null {
   if (!ip) return null;

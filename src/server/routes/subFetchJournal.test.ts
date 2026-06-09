@@ -39,12 +39,14 @@ if (!TEST_URL) {
       await SubFetchJournal.record({
         user_id: alice.id, attempted_token: "a", ip: "1.1.1.1",
         user_agent: "v2raytun", headers: { "user-agent": "v2raytun" }, status_code: 200,
+        device_id: null, blocked_by: null,
       });
     }
     for (let i = 0; i < 3; i++) {
       await SubFetchJournal.record({
         user_id: bob.id, attempted_token: "b", ip: "2.2.2.2",
         user_agent: "hiddify", headers: { "user-agent": "hiddify" }, status_code: 200,
+        device_id: null, blocked_by: null,
       });
     }
     return { alice, bob };
