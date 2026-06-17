@@ -10,6 +10,32 @@ function vless(inbound: Record<string, unknown>, client: Record<string, unknown>
   return result.link;
 }
 
+test("override.port replaces the inbound port", () => {
+  const result = buildVlessLink(
+    "example.com",
+    { protocol: "vless", port: 8445, streamSettings: JSON.stringify({ network: "tcp", security: "none", tcpSettings: {} }) } as any,
+    { id: UUID } as any,
+    { port: 443 },
+  );
+  expect(result.ok).toBe(true);
+  if (result.ok) {
+    expect(result.link).toBe(`vless://${UUID}@example.com:443?headerType=none&security=none&type=tcp`);
+  }
+});
+
+test("override with undefined/no port keeps the inbound port", () => {
+  for (const override of [{ port: undefined }, undefined, {}]) {
+    const r = buildVlessLink(
+      "example.com",
+      { protocol: "vless", port: 8445, streamSettings: JSON.stringify({ network: "tcp", security: "none", tcpSettings: {} }) } as any,
+      { id: UUID } as any,
+      override,
+    );
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.link.includes("@example.com:8445")).toBe(true);
+  }
+});
+
 test("non-vless protocol returns unsupported_protocol", () => {
   const r = buildVlessLink("h", { protocol: "trojan" } as any, { id: UUID } as any);
   expect(r.ok).toBe(false);

@@ -68,6 +68,41 @@ if (!TEST_URL) {
     expect(configs[0]!.external_email).toBe("alice-dev");
   });
 
+  test("config_transforms rewrites the port for the matching tag only", async () => {
+    const cipher = await makeCipher(KEY);
+    const s = await Servers.create({ name: "eu" });
+    const t = await ThreeXUi.create({
+      name: "p", host: "h", port: 2053, web_base_path: "/", username: "u",
+      password: await cipher.encrypt("pw"), use_tls: true, server_id: s.id,
+      config_transforms: [{ tag: "Port443 XHTTP", port: 443 }],
+    });
+    const hub = makeSseHub();
+    const client = fakeClient({
+      login: { ok: true, cookie: "sid=1" },
+      inbounds: {
+        ok: true,
+        inbounds: [
+          {
+            protocol: "vless", port: 8445, listen: "", remark: "Port443 XHTTP",
+            settings: JSON.stringify({ clients: [{ id: "uuid-1", email: "alice-x", enable: true }] }),
+            streamSettings: JSON.stringify({ network: "xhttp", security: "none", xhttpSettings: {} }),
+          },
+          {
+            protocol: "vless", port: 8446, listen: "", remark: "plain",
+            settings: JSON.stringify({ clients: [{ id: "uuid-2", email: "bob-y", enable: true }] }),
+            streamSettings: JSON.stringify({ network: "tcp", security: "none", tcpSettings: {} }),
+          },
+        ],
+      },
+    });
+
+    const res = await syncServer({ panelId: t.id, client, hub, cipher });
+    expect(res.ok).toBe(true);
+    const byEmail = new Map((await Configs.listAll()).map(c => [c.external_email, c.config]));
+    expect(byEmail.get("alice-x")).toContain("@h:443"); // overridden 8445 -> 443
+    expect(byEmail.get("bob-y")).toContain("@h:8446"); // non-matching tag untouched
+  });
+
   test("sync deletes configs whose emails disappeared", async () => {
     const cipher = await makeCipher(KEY);
     const s = await Servers.create({ name: "eu" });

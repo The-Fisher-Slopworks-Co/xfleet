@@ -19,19 +19,24 @@ export type BuildResult =
   | { ok: true; link: string }
   | { ok: false; error: "unsupported_protocol" | "invalid_json" };
 
-export function buildVlessLink(host: string, inbound: Inbound, client: Client): BuildResult {
+// A per-config override applied at link-build time (resolved from the panel's
+// config_transforms by matching the inbound's tag). v1 overrides the port only.
+export type LinkOverride = { port?: number };
+
+export function buildVlessLink(host: string, inbound: Inbound, client: Client, override?: LinkOverride): BuildResult {
   if (inbound.protocol !== "vless") return { ok: false, error: "unsupported_protocol" };
   const stream = parseMaybeJson(inbound.streamSettings);
   if (stream === null) return { ok: false, error: "invalid_json" };
 
   const address = resolveAddress(host, inbound.listen ?? null);
+  const port = override?.port ?? inbound.port;
   const params: Record<string, string> = {};
 
   putTransport(params, stream);
   putSecurity(params, stream, client);
 
   const query = encodeParams(params);
-  return { ok: true, link: `vless://${client.id}@${address}:${inbound.port}?${query}` };
+  return { ok: true, link: `vless://${client.id}@${address}:${port}?${query}` };
 }
 
 function resolveAddress(fallback: string, listen: string | null): string {

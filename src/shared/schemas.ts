@@ -23,12 +23,29 @@ export const configCreateSchema = z.object({
 export const configUpdateSchema = configCreateSchema.partial();
 
 const urlString = z.string().min(1);
+
+// A per-panel transform rule: target a config by its tag (the inbound remark)
+// and override fields of the generated link. v1 overrides the port only; further
+// optional fields (host, sni, ...) can be added here without a migration.
+export const configTransformSchema = z.object({
+  tag: z.string().min(1),
+  port: z.number().int().min(1).max(65535),
+});
+const configTransformsArray = z
+  .array(configTransformSchema)
+  .max(50)
+  .refine(
+    rules => new Set(rules.map(r => r.tag)).size === rules.length,
+    "each tag may only be transformed once",
+  );
+
 export const threeXUiCreateSchema = z.object({
   name: z.string().min(1),
   url: urlString,
   username: z.string().min(1),
   password: z.string().min(1),
   server_id: z.number().int().positive(),
+  config_transforms: configTransformsArray.default([]),
 });
 export const threeXUiUpdateSchema = z.object({
   name: z.string().min(1),
@@ -36,6 +53,9 @@ export const threeXUiUpdateSchema = z.object({
   username: z.string().min(1),
   password: z.string().optional(),
   server_id: z.number().int().positive(),
+  // Optional (no default): an omitted field stays undefined so the DB update
+  // keeps existing transforms instead of wiping them to [].
+  config_transforms: configTransformsArray.optional(),
 });
 
 export const loginSchema = z.object({
@@ -80,6 +100,7 @@ export type ServerCreate = z.infer<typeof serverCreateSchema>;
 export type ConfigCreate = z.infer<typeof configCreateSchema>;
 export type ThreeXUiCreate = z.infer<typeof threeXUiCreateSchema>;
 export type ThreeXUiUpdate = z.infer<typeof threeXUiUpdateSchema>;
+export type ConfigTransform = z.infer<typeof configTransformSchema>;
 export type ExtSubSourceCreate = z.infer<typeof extSubSourceCreateSchema>;
 export type ExtSubSourceUpdate = z.infer<typeof extSubSourceUpdateSchema>;
 export type ExtSubAssign = z.infer<typeof extSubAssignSchema>;

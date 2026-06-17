@@ -4,8 +4,10 @@ import * as ThreeXUi from "../db/threeXUi";
 import * as Users from "../db/users";
 import * as Configs from "../db/configs";
 import { buildVlessLink } from "./linkBuilder";
+import type { LinkOverride } from "./linkBuilder";
 import { generateToken } from "./passwordGenerator";
 import type { Cipher } from "./crypto";
+import type { ConfigTransform } from "../shared/schemas";
 import type { SseHub } from "../server/sseHub";
 import type { PanelServer, LoginResult, InboundsResult, ClientError } from "./threeXUiClient";
 
@@ -57,7 +59,7 @@ async function doSync(panelId: number, client: SyncClient, cipher: Cipher): Prom
   if (!inb.ok) return { ok: false, error: sanitize(inb.error) };
 
   const vless = inb.inbounds.filter(i => i.protocol === "vless");
-  const entries = buildEntries(panel.host, vless);
+  const entries = buildEntries(panel.host, vless, panel.config_transforms);
 
   const stats: SyncStats = await sql().begin(async (tx: any) => {
     await tx`SELECT pg_advisory_xact_lock(${ADVISORY_LOCK_NAMESPACE}, ${panelId})`;
@@ -92,18 +94,25 @@ async function doSync(panelId: number, client: SyncClient, cipher: Cipher): Prom
   return { ok: true, stats };
 }
 
-function buildEntries(host: string, inbounds: any[]): Array<{ email: string; username: string; link: string; tag: string }> {
+function buildEntries(
+  host: string,
+  inbounds: any[],
+  transforms: ConfigTransform[] = [],
+): Array<{ email: string; username: string; link: string; tag: string }> {
+  const byTag = new Map(transforms.map(t => [t.tag, t]));
   const out: Array<{ email: string; username: string; link: string; tag: string }> = [];
   for (const inbound of inbounds) {
     let settings: any;
     try { settings = JSON.parse(inbound.settings || "{}"); } catch { continue; }
     const tag = inbound.remark || "";
+    const rule = byTag.get(tag);
+    const override: LinkOverride | undefined = rule ? { port: rule.port } : undefined;
     const clients = (settings.clients || []).filter((c: any) => c.enable);
     for (const c of clients) {
       const email = String(c.email ?? "");
       const username = parseUsername(email);
       if (!username) continue;
-      const link = buildVlessLink(host, inbound, c);
+      const link = buildVlessLink(host, inbound, c, override);
       if (!link.ok) continue;
       out.push({ email, username, link: link.link, tag });
     }
