@@ -35,6 +35,7 @@ export function threeXUiRoutes(env: Env, cipher: Cipher, hub: SseHub) {
           name: parsed.data.name, host: parsedUrl.host, port: parsedUrl.port,
           web_base_path: parsedUrl.web_base_path, use_tls: parsedUrl.use_tls,
           username: parsed.data.username, password: encrypted, server_id: parsed.data.server_id,
+          config_transforms: parsed.data.config_transforms,
         });
         const { password: _p, ...rest } = row;
         return json(rest, { status: 201 });
@@ -53,6 +54,7 @@ export function threeXUiRoutes(env: Env, cipher: Cipher, hub: SseHub) {
           web_base_path: parsedUrl.web_base_path, use_tls: parsedUrl.use_tls,
           username: parsed.data.username, server_id: parsed.data.server_id,
         };
+        if (parsed.data.config_transforms !== undefined) attrs.config_transforms = parsed.data.config_transforms;
         if (parsed.data.password && parsed.data.password.trim() !== "") {
           attrs.password = await cipher.encrypt(parsed.data.password);
         }

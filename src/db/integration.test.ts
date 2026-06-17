@@ -78,6 +78,22 @@ if (!TEST_URL) {
     expect(after?.last_sync_status).toBe("ok");
   });
 
+  test("three_x_ui config_transforms round-trip: omit keeps, [] clears", async () => {
+    const s = await Servers.create({ name: "ct" });
+    const t = await ThreeXUi.create({
+      name: "panel", host: "p.example", port: 2053, web_base_path: "/", username: "u",
+      password: "enc-pass", use_tls: true, server_id: s.id,
+      config_transforms: [{ tag: "Port443 XHTTP", port: 443 }],
+    });
+    expect((await ThreeXUi.get(t.id))?.config_transforms).toEqual([{ tag: "Port443 XHTTP", port: 443 }]);
+    // update that omits the field must preserve existing transforms
+    await ThreeXUi.update(t.id, { name: "renamed" });
+    expect((await ThreeXUi.get(t.id))?.config_transforms).toEqual([{ tag: "Port443 XHTTP", port: 443 }]);
+    // explicit empty array clears them
+    await ThreeXUi.update(t.id, { config_transforms: [] });
+    expect((await ThreeXUi.get(t.id))?.config_transforms).toEqual([]);
+  });
+
   test("sub_fetch_journal records and lists with user join", async () => {
     const u = await Users.create({ username: "alice", token: "abc" });
     await SubFetchJournal.record({
