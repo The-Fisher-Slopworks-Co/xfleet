@@ -21,7 +21,10 @@ FROM oven/bun:1-alpine AS runtime
 WORKDIR /app
 COPY --from=builder --chown=bun:bun /app/dist/app /app/app
 COPY --from=builder --chown=bun:bun /app/migrations /app/migrations
+# SQLite database directory — mount a volume here to persist it.
+RUN mkdir /app/data && chown bun:bun /app/data
 USER bun
 ENV NODE_ENV=production
+ENV DATABASE_PATH=/app/data/xfleet.db
 EXPOSE 3000
 CMD ["/app/app"]

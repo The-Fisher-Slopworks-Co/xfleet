@@ -1,42 +1,37 @@
 // src/db/ipBlocklist.ts
-import { sql, toNum } from "./client";
-import type { SQL } from "bun";
+import { db } from "./client";
+import { cidrContains, formatCidr, parseCidr, parseIp } from "../shared/ip";
 
 export type IpBlocklistRow = {
   id: number;
   cidr: string;
   note: string | null;
-  inserted_at: Date;
+  inserted_at: string;
 };
 
-type Db = SQL;
-
-function shape(r: any): IpBlocklistRow {
-  return { ...r, id: toNum(r.id) };
+export function list(): IpBlocklistRow[] {
+  return db().query<IpBlocklistRow, []>("SELECT * FROM ip_blocklist ORDER BY id DESC").all();
 }
 
-export async function list(db: Db = sql()): Promise<IpBlocklistRow[]> {
-  const rows = await db`SELECT * FROM ip_blocklist ORDER BY id DESC`;
-  return rows.map(shape);
+/** Stores the canonical form so equivalent spellings hit the UNIQUE constraint. */
+export function add(attrs: { cidr: string; note: string | null }): IpBlocklistRow {
+  const parsed = parseCidr(attrs.cidr);
+  if (!parsed) throw new Error(`invalid IP or CIDR: ${attrs.cidr}`);
+  return db().query<IpBlocklistRow, { cidr: string; note: string | null }>(`
+    INSERT INTO ip_blocklist (cidr, note) VALUES ($cidr, $note)
+    RETURNING *`).get({ cidr: formatCidr(parsed), note: attrs.note })!;
 }
 
-export async function add(
-  attrs: { cidr: string; note: string | null },
-  db: Db = sql(),
-): Promise<IpBlocklistRow> {
-  const rows = await db`
-    INSERT INTO ip_blocklist (cidr, note) VALUES (${attrs.cidr}::inet, ${attrs.note})
-    RETURNING *`;
-  return shape(rows[0]!);
+export function remove(id: number): void {
+  db().query<never, { id: number }>("DELETE FROM ip_blocklist WHERE id = $id").run({ id });
 }
 
-export async function remove(id: number, db: Db = sql()): Promise<void> {
-  await db`DELETE FROM ip_blocklist WHERE id = ${id}`;
-}
-
-/** True when the IP matches any entry — exact or CIDR range (inet containment). */
-export async function isBlocked(ip: string, db: Db = sql()): Promise<boolean> {
-  const rows = await db`
-    SELECT 1 FROM ip_blocklist WHERE ${ip}::inet <<= cidr LIMIT 1`;
-  return rows.length > 0;
+/** True when the IP matches any entry — exact or CIDR range. An unparseable IP matches nothing. */
+export function isBlocked(ip: string): boolean {
+  const addr = parseIp(ip);
+  if (!addr) return false;
+  return db().query<{ cidr: string }, []>("SELECT cidr FROM ip_blocklist").all().some(r => {
+    const net = parseCidr(r.cidr);
+    return net !== null && cidrContains(net, addr);
+  });
 }

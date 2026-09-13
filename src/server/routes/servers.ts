@@ -15,14 +15,14 @@ export function serversRoutes(env: Env) {
     "/api/admin/servers": {
       async GET(req: Request) {
         const g = guard(req); if (g) return g;
-        return json(await Servers.list());
+        return json(Servers.list());
       },
       async POST(req: Request) {
         const g = guard(req); if (g) return g;
         const parsed = serverCreateSchema.safeParse(await readJson(req));
         if (!parsed.success) return badRequest(zodToErrors(parsed.error.issues));
         try {
-          return json(await Servers.create(parsed.data), { status: 201 });
+          return json(Servers.create(parsed.data), { status: 201 });
         } catch (e: any) {
           if (/unique|duplicate/i.test(String(e?.message))) return badRequest({ name: ["has already been taken"] });
           throw e;
@@ -35,7 +35,8 @@ export function serversRoutes(env: Env) {
         const parsed = serverUpdateSchema.safeParse(await readJson(req));
         if (!parsed.success) return badRequest(zodToErrors(parsed.error.issues));
         try {
-          return json(await Servers.update(Number(req.params.id), parsed.data));
+          const row = Servers.update(Number(req.params.id), parsed.data);
+          return row ? json(row) : notFound();
         } catch (e: any) {
           if (/unique|duplicate/i.test(String(e?.message))) return badRequest({ name: ["has already been taken"] });
           throw e;
@@ -43,9 +44,9 @@ export function serversRoutes(env: Env) {
       },
       async DELETE(req: Request & { params: { id: string } }) {
         const g = guard(req); if (g) return g;
-        const existing = await Servers.get(Number(req.params.id));
+        const existing = Servers.get(Number(req.params.id));
         if (!existing) return notFound();
-        await Servers.remove(Number(req.params.id));
+        Servers.remove(Number(req.params.id));
         return noContent();
       },
     },

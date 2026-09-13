@@ -18,7 +18,7 @@ export function subFetchJournalRoutes(env: Env) {
       async GET(req: Request) {
         const g = guard(req); if (g) return g;
         const url = new URL(req.url);
-        const rows = await SubFetchJournal.list({
+        const rows = SubFetchJournal.list({
           userId: parseId(url.searchParams.get("user_id")),
           beforeId: parseId(url.searchParams.get("before_id")),
           limit: parseLimit(url.searchParams.get("limit"), DEFAULT_LIMIT, MAX_LIMIT),
@@ -32,7 +32,7 @@ export function subFetchJournalRoutes(env: Env) {
         const url = new URL(req.url);
         const userId = Number(req.params.id);
         if (!Number.isFinite(userId) || userId <= 0) return json([]);
-        const rows = await SubFetchJournal.list({
+        const rows = SubFetchJournal.list({
           userId,
           beforeId: parseId(url.searchParams.get("before_id")),
           limit: parseLimit(url.searchParams.get("limit"), DEFAULT_LIMIT, MAX_LIMIT),

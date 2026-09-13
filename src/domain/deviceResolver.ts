@@ -10,8 +10,6 @@
 // previously tracked as a fallback device, the fallback row is superseded
 // and deleted — unless it is blocked. A blocked fallback row is kept so
 // requests from that ua+ip without a hwid still hit the block.
-import { sql } from "../db/client";
-import type { SQL } from "bun";
 import * as Devices from "../db/devices";
 import type { DeviceRow } from "../db/devices";
 
@@ -22,20 +20,20 @@ export type DeviceSignals = {
   ip: string | null;
 };
 
-export async function resolveDevice(signals: DeviceSignals, db: SQL = sql()): Promise<DeviceRow | null> {
+export function resolveDevice(signals: DeviceSignals): DeviceRow | null {
   const { userId, hwid, userAgent, ip } = signals;
 
   if (hwid) {
-    const device = await Devices.upsertByHwid({ user_id: userId, hwid, ua: userAgent, ip }, db);
+    const device = Devices.upsertByHwid({ user_id: userId, hwid, ua: userAgent, ip });
     if (userAgent !== null && ip !== null) {
-      const superseded = await Devices.findByFallback({ user_id: userId, ua: userAgent, ip }, db);
-      if (superseded && !superseded.is_blocked) await Devices.remove(superseded.id, db);
+      const superseded = Devices.findByFallback({ user_id: userId, ua: userAgent, ip });
+      if (superseded && !superseded.is_blocked) Devices.remove(superseded.id);
     }
     return device;
   }
 
   if (userAgent !== null && ip !== null) {
-    return Devices.upsertByFallback({ user_id: userId, ua: userAgent, ip }, db);
+    return Devices.upsertByFallback({ user_id: userId, ua: userAgent, ip });
   }
 
   return null;

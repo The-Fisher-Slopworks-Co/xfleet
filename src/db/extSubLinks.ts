@@ -1,6 +1,5 @@
 // src/db/extSubLinks.ts
-import { sql, toNum } from "./client";
-import type { SQL } from "bun";
+import { db } from "./client";
 
 export type ExtSubLinkRow = {
   id: number;
@@ -8,7 +7,7 @@ export type ExtSubLinkRow = {
   uri: string;
   label: string | null;
   sort_order: number;
-  inserted_at: Date;
+  inserted_at: string;
 };
 
 export type ExtSubLinkWithSource = {
@@ -17,54 +16,39 @@ export type ExtSubLinkWithSource = {
   source_name: string;
 };
 
-type Db = SQL;
-
-function shape(r: any): ExtSubLinkRow {
-  return { ...r, id: toNum(r.id), source_id: toNum(r.source_id), sort_order: toNum(r.sort_order) };
-}
-
-export async function listForSource(sourceId: number, db: Db = sql()): Promise<ExtSubLinkRow[]> {
-  const rows = await db`
+export function listForSource(sourceId: number): ExtSubLinkRow[] {
+  return db().query<ExtSubLinkRow, { sourceId: number }>(`
     SELECT * FROM ext_sub_links
-    WHERE source_id = ${sourceId}
-    ORDER BY sort_order ASC, id ASC`;
-  return rows.map(shape);
+    WHERE source_id = $sourceId
+    ORDER BY sort_order ASC, id ASC`).all({ sourceId });
 }
 
-export async function listForUser(userId: number, db: Db = sql()): Promise<ExtSubLinkWithSource[]> {
-  const rows = await db`
+export function listForUser(userId: number): ExtSubLinkWithSource[] {
+  return db().query<ExtSubLinkWithSource, { userId: number }>(`
     SELECT l.uri, l.label, s.name AS source_name
     FROM ext_sub_links l
     JOIN ext_sub_user_sources a ON a.source_id = l.source_id
     JOIN ext_sub_sources s       ON s.id = l.source_id
-    WHERE a.user_id = ${userId}
-    ORDER BY l.source_id ASC, l.sort_order ASC, l.id ASC`;
-  return rows.map((r: any) => ({
-    uri: r.uri,
-    label: r.label ?? null,
-    source_name: r.source_name,
-  }));
+    WHERE a.user_id = $userId
+    ORDER BY l.source_id ASC, l.sort_order ASC, l.id ASC`).all({ userId });
 }
 
 /**
  * Full-replace strategy: deletes every existing link for source_id and re-inserts
- * the given set in order. Caller must run this inside a transaction that holds an
- * advisory lock on the source (see domain/extSubSync.ts).
+ * the given set in order, atomically.
  */
-export async function replaceForSource(
+export function replaceForSource(
   sourceId: number,
   links: Array<{ uri: string; label: string | null }>,
-  db: Db = sql(),
-): Promise<{ inserted: number; deleted: number }> {
-  const delResult = await db`DELETE FROM ext_sub_links WHERE source_id = ${sourceId}`;
-  const deleted = toNum(delResult.count ?? 0);
-  let inserted = 0;
-  for (let i = 0; i < links.length; i++) {
-    const l = links[i]!;
-    await db`
+): { inserted: number; deleted: number } {
+  const conn = db();
+  return conn.transaction(() => {
+    const deleted = conn.query<never, { sourceId: number }>("DELETE FROM ext_sub_links WHERE source_id = $sourceId")
+      .run({ sourceId }).changes;
+    const insert = conn.query<never, { sourceId: number; uri: string; label: string | null; sortOrder: number }>(`
       INSERT INTO ext_sub_links (source_id, uri, label, sort_order)
-      VALUES (${sourceId}, ${l.uri}, ${l.label ?? null}, ${i})`;
-    inserted++;
-  }
-  return { inserted, deleted };
+      VALUES ($sourceId, $uri, $label, $sortOrder)`);
+    links.forEach((l, i) => insert.run({ sourceId, uri: l.uri, label: l.label ?? null, sortOrder: i }));
+    return { inserted: links.length, deleted };
+  })();
 }

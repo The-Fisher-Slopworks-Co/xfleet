@@ -2,7 +2,7 @@
 
 Admin panel that sits in front of [3X-UI](https://github.com/MHSanaei/3x-ui) — manage
 VPN users/servers once, sync to every 3X-UI panel, hand out subscription share links.
-Bun + Postgres + React 19 SPA. See README.md for setup/deploy.
+Bun + SQLite (`bun:sqlite`) + React 19 SPA. See README.md for setup/deploy.
 
 ## Commands
 
@@ -11,10 +11,7 @@ bun run dev          # hot-reload server (serves API + SPA) on PORT (default 300
 bun run migrate      # apply migrations/*.sql in order
 bun run hash-password 'pass'   # generate ADMIN_PASSWORD_HASH
 bun run start        # production (NODE_ENV=production)
-
-# Tests need a real Postgres — they are NOT pure unit tests:
-createdb xfleet_test
-TEST_DATABASE_URL=postgres://$USER@localhost:5432/xfleet_test bun test
+bun test             # DB tests use in-memory SQLite (__resetDbForTests in db/client.ts)
 ```
 
 ## Architecture
@@ -22,8 +19,11 @@ TEST_DATABASE_URL=postgres://$USER@localhost:5432/xfleet_test bun test
 Layered, one direction of dependency: `frontend → server → domain → db`.
 
 - `src/db/` — data access, one module per entity (`users.ts`, `servers.ts`, …). Uses a
-  `Bun.sql` singleton via `sql()` in `db/client.ts`. **bun:sql returns numeric columns
-  as strings** — wrap with `toNum`/`toNumOrNull` from `db/client.ts`.
+  `bun:sqlite` singleton via `db()` in `db/client.ts` (file at `DATABASE_PATH`). **The
+  API is synchronous** — db functions return values, not promises; atomic multi-step
+  writes go in `db().transaction(() => …)()`, which also serializes concurrent syncs.
+  Tables are `STRICT`: timestamps are ISO-8601 TEXT, booleans INTEGER 0/1 (convert in a
+  `shape()` helper), JSON is TEXT.
 - `src/domain/` — business logic (crypto, sync, scheduler, ext-sub parsing). Mostly
   pure and unit-tested.
 - `src/server/` — `Bun.serve` HTTP routes. Each `routes/*.ts` exports a **factory**
@@ -31,6 +31,7 @@ Layered, one direction of dependency: `frontend → server → domain → db`.
   `server/index.ts`. Auth via `requireAuth` + a `guard()` helper at the top of each
   handler. SSE fan-out through `sseHub`.
 - `src/shared/schemas.ts` — Zod schemas shared by client and server for validation.
+  `shared/ip.ts` parses/matches IPs and CIDRs for the IP blocklist (no `inet` in SQLite).
 - `src/frontend/` — React Router SPA. `index.html` is imported by the server; `/*`
   falls back to it. Terminal-themed UI in `components/terminal/`, shadcn in
   `components/ui/`.

@@ -16,14 +16,14 @@ export function usersRoutes(env: Env) {
     "/api/admin/users": {
       async GET(req: Request) {
         const g = guard(req); if (g) return g;
-        return json(await Users.list());
+        return json(Users.list());
       },
       async POST(req: Request) {
         const g = guard(req); if (g) return g;
         const parsed = userCreateSchema.safeParse(await readJson(req));
         if (!parsed.success) return badRequest(zodToErrors(parsed.error.issues));
         try {
-          const row = await Users.create(parsed.data);
+          const row = Users.create(parsed.data);
           return json(row, { status: 201 });
         } catch (e: any) {
           return uniqueViolation(e);
@@ -33,7 +33,7 @@ export function usersRoutes(env: Env) {
     "/api/admin/users/:id": {
       async GET(req: Request & { params: { id: string } }) {
         const g = guard(req); if (g) return g;
-        const row = await Users.get(Number(req.params.id));
+        const row = Users.get(Number(req.params.id));
         return row ? json(row) : notFound();
       },
       async PATCH(req: Request & { params: { id: string } }) {
@@ -41,14 +41,15 @@ export function usersRoutes(env: Env) {
         const parsed = userUpdateSchema.safeParse(await readJson(req));
         if (!parsed.success) return badRequest(zodToErrors(parsed.error.issues));
         try {
-          return json(await Users.update(Number(req.params.id), parsed.data));
+          const row = Users.update(Number(req.params.id), parsed.data);
+          return row ? json(row) : notFound();
         } catch (e: any) {
           return uniqueViolation(e);
         }
       },
       async DELETE(req: Request & { params: { id: string } }) {
         const g = guard(req); if (g) return g;
-        await Users.remove(Number(req.params.id));
+        Users.remove(Number(req.params.id));
         return noContent();
       },
     },

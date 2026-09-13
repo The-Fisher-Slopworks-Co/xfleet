@@ -6,7 +6,7 @@ import type { Env } from "../env";
 
 const hash = bcrypt.hashSync("hunter2", 10);
 const env: Env = {
-  port: 0, databaseUrl: "", adminUsername: "admin", adminPasswordHash: hash,
+  port: 0, databasePath: "", adminUsername: "admin", adminPasswordHash: hash,
   sessionSecret: "x".repeat(64), masterKey: "", profileTitle: "VPN", publicBaseUrl: "http://x",
   trustProxy: false, subJournalRetentionDays: 90,
 };

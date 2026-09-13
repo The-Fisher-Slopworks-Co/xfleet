@@ -1,41 +1,31 @@
 // src/db/servers.ts
-import { sql, toNum } from "./client";
-import type { SQL } from "bun";
+import { db } from "./client";
 
 export type ServerRow = {
   id: number;
   name: string;
-  inserted_at: Date;
-  updated_at: Date;
+  inserted_at: string;
+  updated_at: string;
 };
 
-type Db = SQL;
-
-function shapeServer(r: any): ServerRow {
-  return { ...r, id: toNum(r.id) };
+export function list(): ServerRow[] {
+  return db().query<ServerRow, []>("SELECT * FROM servers ORDER BY name ASC").all();
 }
-
-export async function list(db: Db = sql()): Promise<ServerRow[]> {
-  const rows = await db`SELECT * FROM servers ORDER BY name ASC`;
-  return rows.map(shapeServer);
+export function get(id: number): ServerRow | null {
+  return db().query<ServerRow, { id: number }>("SELECT * FROM servers WHERE id = $id").get({ id });
 }
-export async function get(id: number, db: Db = sql()): Promise<ServerRow | null> {
-  const rows = await db`SELECT * FROM servers WHERE id = ${id}`;
-  return rows[0] ? shapeServer(rows[0]) : null;
+export function create(attrs: { name: string }): ServerRow {
+  return db().query<ServerRow, { name: string }>("INSERT INTO servers (name) VALUES ($name) RETURNING *")
+    .get({ name: attrs.name })!;
 }
-export async function create(attrs: { name: string }, db: Db = sql()): Promise<ServerRow> {
-  const rows = await db`INSERT INTO servers (name) VALUES (${attrs.name}) RETURNING *`;
-  return shapeServer(rows[0]!);
-}
-export async function update(id: number, attrs: { name?: string }, db: Db = sql()): Promise<ServerRow> {
-  const rows = await db`
+export function update(id: number, attrs: { name?: string }): ServerRow | null {
+  return db().query<ServerRow, { id: number; name: string | null }>(`
     UPDATE servers SET
-      name = COALESCE(${attrs.name ?? null}, name),
-      updated_at = now()
-    WHERE id = ${id}
-    RETURNING *`;
-  return shapeServer(rows[0]!);
+      name = COALESCE($name, name),
+      updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE id = $id
+    RETURNING *`).get({ id, name: attrs.name ?? null });
 }
-export async function remove(id: number, db: Db = sql()): Promise<void> {
-  await db`DELETE FROM servers WHERE id = ${id}`;
+export function remove(id: number): void {
+  db().query<never, { id: number }>("DELETE FROM servers WHERE id = $id").run({ id });
 }

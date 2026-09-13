@@ -1,5 +1,6 @@
 // src/shared/schemas.ts
 import { z } from "zod";
+import { parseCidr } from "./ip";
 
 export const usernameSchema = z.string().regex(/^[a-zA-Z0-9_]+$/, "must contain only letters, digits, and underscores");
 export const tokenSchema = z.string().min(1);
@@ -89,9 +90,8 @@ export const extSubAssignSchema = z.object({
 
 export const deviceBlockSchema = z.object({ blocked: z.boolean() });
 export const deviceLabelSchema = z.object({ label: z.string().max(200).nullable() });
-// IP or CIDR; Postgres inet is the authoritative validator (route maps cast errors to 422).
 export const ipBlockCreateSchema = z.object({
-  cidr: z.string().trim().min(1).max(64),
+  cidr: z.string().trim().min(1).max(64).refine(v => parseCidr(v) !== null, "must be a valid IP or CIDR"),
   note: z.string().max(500).optional().nullable(),
 });
 

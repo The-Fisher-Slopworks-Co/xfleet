@@ -15,19 +15,17 @@ export function ipBlocklistRoutes(env: Env) {
     "/api/admin/ip-blocklist": {
       async GET(req: Request) {
         const g = guard(req); if (g) return g;
-        return json(await IpBlocklist.list());
+        return json(IpBlocklist.list());
       },
       async POST(req: Request) {
         const g = guard(req); if (g) return g;
         const parsed = ipBlockCreateSchema.safeParse(await readJson(req));
         if (!parsed.success) return badRequest(zodToErrors(parsed.error.issues));
         try {
-          const row = await IpBlocklist.add({ cidr: parsed.data.cidr, note: parsed.data.note ?? null });
+          const row = IpBlocklist.add({ cidr: parsed.data.cidr, note: parsed.data.note ?? null });
           return json(row, { status: 201 });
         } catch (e: any) {
-          const msg = String(e?.message || e);
-          if (/invalid input syntax/i.test(msg)) return badRequest({ cidr: ["must be a valid IP or CIDR"] });
-          if (/unique|duplicate/i.test(msg)) return badRequest({ cidr: ["is already blocked"] });
+          if (/unique/i.test(String(e?.message || e))) return badRequest({ cidr: ["is already blocked"] });
           throw e;
         }
       },
@@ -35,7 +33,7 @@ export function ipBlocklistRoutes(env: Env) {
     "/api/admin/ip-blocklist/:id": {
       async DELETE(req: Request & { params: { id: string } }) {
         const g = guard(req); if (g) return g;
-        await IpBlocklist.remove(Number(req.params.id));
+        IpBlocklist.remove(Number(req.params.id));
         return noContent();
       },
     },

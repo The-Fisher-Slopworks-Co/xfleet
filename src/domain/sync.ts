@@ -1,5 +1,5 @@
 // src/domain/sync.ts
-import { sql } from "../db/client";
+import { db } from "../db/client";
 import * as ThreeXUi from "../db/threeXUi";
 import * as Users from "../db/users";
 import * as Configs from "../db/configs";
@@ -19,8 +19,6 @@ export type SyncClient = {
   listInbounds: (s: PanelServer, cookie: string) => Promise<InboundsResult>;
 };
 
-const ADVISORY_LOCK_NAMESPACE = 1_337_001;
-
 export async function syncServer(args: {
   panelId: number; client: SyncClient; hub: SseHub; cipher: Cipher;
 }): Promise<SyncResult> {
@@ -35,7 +33,7 @@ export async function syncServer(args: {
   }
 
   const status = result.ok ? "ok" : `error: ${result.error}`;
-  await ThreeXUi.updateSyncStatus(panelId, new Date(), status);
+  ThreeXUi.updateSyncStatus(panelId, new Date(), status);
 
   hub.broadcast({
     type: "sync_complete",
@@ -46,7 +44,7 @@ export async function syncServer(args: {
 }
 
 async function doSync(panelId: number, client: SyncClient, cipher: Cipher): Promise<SyncResult> {
-  const panel = await ThreeXUi.get(panelId);
+  const panel = ThreeXUi.get(panelId);
   if (!panel) return { ok: false, error: "panel not found" };
 
   const plainPassword = await cipher.decrypt(panel.password);
@@ -61,17 +59,17 @@ async function doSync(panelId: number, client: SyncClient, cipher: Cipher): Prom
   const vless = inb.inbounds.filter(i => i.protocol === "vless");
   const entries = buildEntries(panel.host, vless, panel.config_transforms);
 
-  const stats: SyncStats = await sql().begin(async (tx: any) => {
-    await tx`SELECT pg_advisory_xact_lock(${ADVISORY_LOCK_NAMESPACE}, ${panelId})`;
+  // Synchronous transaction: nothing else touches the DB until it commits, so
+  // concurrent syncs of the same panel (scheduler + manual trigger) serialize.
+  const stats: SyncStats = db().transaction(() => {
     let created = 0, updated = 0, usersCreated = 0;
 
-    const existing = await tx`SELECT * FROM configs WHERE three_x_ui_server_id = ${panelId}`;
-    const byEmail = new Map<string, any>(existing.map((c: any) => [c.external_email, c]));
+    const byEmail = new Map(Configs.listByPanelEmails(panelId).map(c => [c.external_email, c]));
 
     const syncedEmails: string[] = [];
     for (const entry of entries) {
       syncedEmails.push(entry.email);
-      const { user, created: createdUser } = await findOrCreateUser(tx, entry.username);
+      const { user, created: createdUser } = findOrCreateUser(entry.username);
       if (createdUser) usersCreated++;
       const prev = byEmail.get(entry.email);
       const attrs = {
@@ -79,17 +77,17 @@ async function doSync(panelId: number, client: SyncClient, cipher: Cipher): Prom
         tag: entry.tag || null, three_x_ui_server_id: panelId, external_email: entry.email,
       };
       if (!prev) {
-        await Configs.create(attrs, tx);
+        Configs.create(attrs);
         created++;
       } else {
-        await Configs.update(prev.id, attrs, tx);
+        Configs.update(prev.id, attrs);
         updated++;
       }
     }
 
-    const deleted = await Configs.deleteMissingExternalEmails(panelId, syncedEmails, tx);
+    const deleted = Configs.deleteMissingExternalEmails(panelId, syncedEmails);
     return { created, updated, deleted, usersCreated };
-  });
+  })();
 
   return { ok: true, stats };
 }
@@ -127,17 +125,10 @@ function parseUsername(email: string): string | null {
   return u || null;
 }
 
-async function findOrCreateUser(tx: any, username: string): Promise<{ user: { id: number }; created: boolean }> {
-  const existing = await Users.getByUsername(username, tx);
+function findOrCreateUser(username: string): { user: { id: number }; created: boolean } {
+  const existing = Users.getByUsername(username);
   if (existing) return { user: existing, created: false };
-  try {
-    const created = await Users.create({ username, token: generateToken(32) }, tx);
-    return { user: created, created: true };
-  } catch {
-    const retry = await Users.getByUsername(username, tx);
-    if (!retry) throw new Error(`findOrCreateUser failed for ${username}`);
-    return { user: retry, created: false };
-  }
+  return { user: Users.create({ username, token: generateToken(32) }), created: true };
 }
 
 function sanitize(e: ClientError): string {

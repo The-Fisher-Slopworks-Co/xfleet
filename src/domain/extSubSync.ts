@@ -1,5 +1,4 @@
 // src/domain/extSubSync.ts
-import { sql } from "../db/client";
 import * as ExtSubSources from "../db/extSubSources";
 import * as ExtSubLinks from "../db/extSubLinks";
 import { fetchSubscription as defaultFetch } from "./extSubFetcher";
@@ -14,8 +13,6 @@ export type ExtSubSyncResult =
   | { ok: false; error: string };
 
 export type Fetcher = (url: string, headers: FetchHeaders) => Promise<FetchResult>;
-
-export const EXT_SUB_ADVISORY_LOCK_NAMESPACE = 1_337_002;
 
 export async function refreshSource(args: {
   sourceId: number;
@@ -40,7 +37,7 @@ export async function refreshSource(args: {
   if (!result.ok && result.error === "source not found") return result;
 
   const status = result.ok ? "ok" : `error: ${result.error}`;
-  await ExtSubSources.updateFetchStatus(sourceId, new Date(), status);
+  ExtSubSources.updateFetchStatus(sourceId, new Date(), status);
 
   hub.broadcast({
     type: "ext_sub_complete",
@@ -51,7 +48,7 @@ export async function refreshSource(args: {
 }
 
 async function doRefresh(sourceId: number, cipher: Cipher, fetcher: Fetcher): Promise<ExtSubSyncResult> {
-  const source = await ExtSubSources.get(sourceId);
+  const source = ExtSubSources.get(sourceId);
   if (!source) return { ok: false, error: "source not found" };
 
   const plainUrl = await cipher.decrypt(source.url);
@@ -66,12 +63,7 @@ async function doRefresh(sourceId: number, cipher: Cipher, fetcher: Fetcher): Pr
   if (!fetched.ok) return { ok: false, error: sanitize(fetched.error) };
 
   const links = parseSubBody(fetched.body);
-
-  const stats: ExtSubSyncStats = await sql().begin(async (tx: any) => {
-    await tx`SELECT pg_advisory_xact_lock(${EXT_SUB_ADVISORY_LOCK_NAMESPACE}, ${sourceId})`;
-    return ExtSubLinks.replaceForSource(sourceId, links, tx);
-  });
-
+  const stats: ExtSubSyncStats = ExtSubLinks.replaceForSource(sourceId, links);
   return { ok: true, stats };
 }
 

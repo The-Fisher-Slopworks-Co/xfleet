@@ -19,7 +19,7 @@ export function threeXUiRoutes(env: Env, cipher: Cipher, hub: SseHub) {
     "/api/admin/three-x-ui": {
       async GET(req: Request) {
         const g = guard(req); if (g) return g;
-        const rows = await ThreeXUi.list();
+        const rows = ThreeXUi.list();
         // Never return password (even encrypted) over the wire
         return json(rows.map(({ password: _p, ...rest }) => rest));
       },
@@ -31,7 +31,7 @@ export function threeXUiRoutes(env: Env, cipher: Cipher, hub: SseHub) {
         const parsedUrl = parseThreeXUiUrl(parsed.data.url);
         if ("error" in parsedUrl) return badRequest({ url: [parsedUrl.error] });
         const encrypted = await cipher.encrypt(parsed.data.password);
-        const row = await ThreeXUi.create({
+        const row = ThreeXUi.create({
           name: parsed.data.name, host: parsedUrl.host, port: parsedUrl.port,
           web_base_path: parsedUrl.web_base_path, use_tls: parsedUrl.use_tls,
           username: parsed.data.username, password: encrypted, server_id: parsed.data.server_id,
@@ -58,15 +58,16 @@ export function threeXUiRoutes(env: Env, cipher: Cipher, hub: SseHub) {
         if (parsed.data.password && parsed.data.password.trim() !== "") {
           attrs.password = await cipher.encrypt(parsed.data.password);
         }
-        const row = await ThreeXUi.update(Number(req.params.id), attrs as any);
+        const row = ThreeXUi.update(Number(req.params.id), attrs as any);
+        if (!row) return notFound();
         const { password: _p, ...rest } = row;
         return json(rest);
       },
       async DELETE(req: Request & { params: { id: string } }) {
         const g = guard(req); if (g) return g;
-        const existing = await ThreeXUi.get(Number(req.params.id));
+        const existing = ThreeXUi.get(Number(req.params.id));
         if (!existing) return notFound();
-        await ThreeXUi.remove(Number(req.params.id));
+        ThreeXUi.remove(Number(req.params.id));
         return noContent();
       },
     },
@@ -74,7 +75,7 @@ export function threeXUiRoutes(env: Env, cipher: Cipher, hub: SseHub) {
       async POST(req: Request & { params: { id: string } }) {
         const g = guard(req); if (g) return g;
         const id = Number(req.params.id);
-        const panel = await ThreeXUi.get(id);
+        const panel = ThreeXUi.get(id);
         if (!panel) return notFound();
         // Fire and forget
         void syncServer({

@@ -1,53 +1,40 @@
 // src/db/users.ts
-import { sql, toNum } from "./client";
-import type { SQL } from "bun";
+import { db } from "./client";
 
 export type UserRow = {
   id: number;
   username: string;
   token: string;
-  inserted_at: Date;
-  updated_at: Date;
+  inserted_at: string;
+  updated_at: string;
 };
 
-type Db = SQL;
-
-function shapeUser(r: any): UserRow {
-  return { ...r, id: toNum(r.id) };
+export function list(): UserRow[] {
+  return db().query<UserRow, []>("SELECT * FROM users ORDER BY id ASC").all();
 }
-
-export async function list(db: Db = sql()): Promise<UserRow[]> {
-  const rows = await db`SELECT * FROM users ORDER BY id ASC`;
-  return rows.map(shapeUser);
+export function get(id: number): UserRow | null {
+  return db().query<UserRow, { id: number }>("SELECT * FROM users WHERE id = $id").get({ id });
 }
-export async function get(id: number, db: Db = sql()): Promise<UserRow | null> {
-  const rows = await db`SELECT * FROM users WHERE id = ${id}`;
-  return rows[0] ? shapeUser(rows[0]) : null;
+export function getByToken(token: string): UserRow | null {
+  return db().query<UserRow, { token: string }>("SELECT * FROM users WHERE token = $token").get({ token });
 }
-export async function getByToken(token: string, db: Db = sql()): Promise<UserRow | null> {
-  const rows = await db`SELECT * FROM users WHERE token = ${token}`;
-  return rows[0] ? shapeUser(rows[0]) : null;
+export function getByUsername(username: string): UserRow | null {
+  return db().query<UserRow, { username: string }>("SELECT * FROM users WHERE username = $username").get({ username });
 }
-export async function getByUsername(username: string, db: Db = sql()): Promise<UserRow | null> {
-  const rows = await db`SELECT * FROM users WHERE username = ${username}`;
-  return rows[0] ? shapeUser(rows[0]) : null;
+export function create(attrs: { username: string; token: string }): UserRow {
+  return db().query<UserRow, { username: string; token: string }>(`
+    INSERT INTO users (username, token) VALUES ($username, $token)
+    RETURNING *`).get({ username: attrs.username, token: attrs.token })!;
 }
-export async function create(attrs: { username: string; token: string }, db: Db = sql()): Promise<UserRow> {
-  const rows = await db`
-    INSERT INTO users (username, token) VALUES (${attrs.username}, ${attrs.token})
-    RETURNING *`;
-  return shapeUser(rows[0]!);
-}
-export async function update(id: number, attrs: { username?: string; token?: string }, db: Db = sql()): Promise<UserRow> {
-  const rows = await db`
+export function update(id: number, attrs: { username?: string; token?: string }): UserRow | null {
+  return db().query<UserRow, { id: number; username: string | null; token: string | null }>(`
     UPDATE users SET
-      username = COALESCE(${attrs.username ?? null}, username),
-      token    = COALESCE(${attrs.token ?? null}, token),
-      updated_at = now()
-    WHERE id = ${id}
-    RETURNING *`;
-  return shapeUser(rows[0]!);
+      username   = COALESCE($username, username),
+      token      = COALESCE($token, token),
+      updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE id = $id
+    RETURNING *`).get({ id, username: attrs.username ?? null, token: attrs.token ?? null });
 }
-export async function remove(id: number, db: Db = sql()): Promise<void> {
-  await db`DELETE FROM users WHERE id = ${id}`;
+export function remove(id: number): void {
+  db().query<never, { id: number }>("DELETE FROM users WHERE id = $id").run({ id });
 }

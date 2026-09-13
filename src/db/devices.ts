@@ -1,6 +1,5 @@
 // src/db/devices.ts
-import { sql, toNum } from "./client";
-import type { SQL } from "bun";
+import { db, type Bindings } from "./client";
 
 export type DeviceRow = {
   id: number;
@@ -12,109 +11,93 @@ export type DeviceRow = {
   last_ua: string | null;
   last_ip: string | null;
   is_blocked: boolean;
-  first_seen_at: Date;
-  last_seen_at: Date;
+  first_seen_at: string;
+  last_seen_at: string;
 };
 
 export type DeviceWithUser = DeviceRow & {
   user: { id: number; username: string };
 };
 
-type Db = SQL;
+type RawDevice = Omit<DeviceRow, "is_blocked"> & { is_blocked: number };
 
-function shape(r: any): DeviceRow {
-  return {
-    ...r,
-    id: toNum(r.id),
-    user_id: toNum(r.user_id),
-    is_blocked: r.is_blocked === true || r.is_blocked === "t" || r.is_blocked === "true",
-  };
+function shape(r: RawDevice): DeviceRow {
+  return { ...r, is_blocked: r.is_blocked === 1 };
 }
 
-function shapeWithUser(r: any): DeviceWithUser {
-  const { __username, ...rest } = r;
+function shapeWithUser({ __username, ...rest }: RawDevice & { __username: string }): DeviceWithUser {
   const base = shape(rest);
-  return { ...base, user: { id: base.user_id, username: __username as string } };
+  return { ...base, user: { id: base.user_id, username: __username } };
 }
 
-export async function upsertByHwid(
+export function upsertByHwid(
   attrs: { user_id: number; hwid: string; ua: string | null; ip: string | null },
-  db: Db = sql(),
-): Promise<DeviceRow> {
-  const rows = await db`
+): DeviceRow {
+  return shape(db().query<RawDevice, Bindings>(`
     INSERT INTO devices (user_id, hwid, last_ua, last_ip)
-    VALUES (${attrs.user_id}, ${attrs.hwid}, ${attrs.ua}, ${attrs.ip})
+    VALUES ($user_id, $hwid, $ua, $ip)
     ON CONFLICT (user_id, hwid) WHERE hwid IS NOT NULL
     DO UPDATE SET
-      last_ua      = EXCLUDED.last_ua,
-      last_ip      = EXCLUDED.last_ip,
-      last_seen_at = now()
-    RETURNING *`;
-  return shape(rows[0]!);
+      last_ua      = excluded.last_ua,
+      last_ip      = excluded.last_ip,
+      last_seen_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    RETURNING *`).get({ user_id: attrs.user_id, hwid: attrs.hwid, ua: attrs.ua, ip: attrs.ip })!);
 }
 
-export async function upsertByFallback(
+export function upsertByFallback(
   attrs: { user_id: number; ua: string; ip: string },
-  db: Db = sql(),
-): Promise<DeviceRow> {
-  const rows = await db`
+): DeviceRow {
+  return shape(db().query<RawDevice, Bindings>(`
     INSERT INTO devices (user_id, fallback_ua, fallback_ip, last_ua, last_ip)
-    VALUES (${attrs.user_id}, ${attrs.ua}, ${attrs.ip}, ${attrs.ua}, ${attrs.ip})
+    VALUES ($user_id, $ua, $ip, $ua, $ip)
     ON CONFLICT (user_id, fallback_ua, fallback_ip) WHERE hwid IS NULL
-    DO UPDATE SET last_seen_at = now()
-    RETURNING *`;
-  return shape(rows[0]!);
+    DO UPDATE SET last_seen_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    RETURNING *`).get({ user_id: attrs.user_id, ua: attrs.ua, ip: attrs.ip })!);
 }
 
-export async function findByFallback(
+export function findByFallback(
   attrs: { user_id: number; ua: string; ip: string },
-  db: Db = sql(),
-): Promise<DeviceRow | null> {
-  const rows = await db`
+): DeviceRow | null {
+  const row = db().query<RawDevice, Bindings>(`
     SELECT * FROM devices
-    WHERE user_id = ${attrs.user_id} AND hwid IS NULL
-      AND fallback_ua = ${attrs.ua} AND fallback_ip = ${attrs.ip}`;
-  return rows[0] ? shape(rows[0]) : null;
+    WHERE user_id = $user_id AND hwid IS NULL
+      AND fallback_ua = $ua AND fallback_ip = $ip`).get({ user_id: attrs.user_id, ua: attrs.ua, ip: attrs.ip });
+  return row ? shape(row) : null;
 }
 
-export async function get(id: number, db: Db = sql()): Promise<DeviceRow | null> {
-  const rows = await db`SELECT * FROM devices WHERE id = ${id}`;
-  return rows[0] ? shape(rows[0]) : null;
+export function get(id: number): DeviceRow | null {
+  const row = db().query<RawDevice, { id: number }>("SELECT * FROM devices WHERE id = $id").get({ id });
+  return row ? shape(row) : null;
 }
 
-export async function remove(id: number, db: Db = sql()): Promise<void> {
-  await db`DELETE FROM devices WHERE id = ${id}`;
+export function remove(id: number): void {
+  db().query<never, { id: number }>("DELETE FROM devices WHERE id = $id").run({ id });
 }
 
-export async function listForUser(user_id: number, db: Db = sql()): Promise<DeviceRow[]> {
-  const rows = await db`
-    SELECT * FROM devices WHERE user_id = ${user_id} ORDER BY last_seen_at DESC`;
-  return rows.map(shape);
+export function listForUser(user_id: number): DeviceRow[] {
+  return db().query<RawDevice, { user_id: number }>(`
+    SELECT * FROM devices WHERE user_id = $user_id ORDER BY last_seen_at DESC`).all({ user_id }).map(shape);
 }
 
-export async function listBlocked(
-  opts: { beforeId?: number; limit: number },
-  db: Db = sql(),
-): Promise<DeviceWithUser[]> {
+export function listBlocked(opts: { beforeId?: number; limit: number }): DeviceWithUser[] {
   const limit = Math.max(1, Math.min(1000, opts.limit));
   const beforeId = opts.beforeId ?? null;
-  const rows = await db`
+  return db().query<RawDevice & { __username: string }, { beforeId: number | null; limit: number }>(`
     SELECT d.*, u.username AS __username
     FROM devices d JOIN users u ON u.id = d.user_id
-    WHERE d.is_blocked = true
-      AND (${beforeId}::bigint IS NULL OR d.id < ${beforeId})
-    ORDER BY d.id DESC LIMIT ${limit}`;
-  return rows.map(shapeWithUser);
+    WHERE d.is_blocked = 1
+      AND ($beforeId IS NULL OR d.id < $beforeId)
+    ORDER BY d.id DESC LIMIT $limit`).all({ beforeId, limit }).map(shapeWithUser);
 }
 
-export async function setBlocked(id: number, blocked: boolean, db: Db = sql()): Promise<DeviceRow | null> {
-  const rows = await db`
-    UPDATE devices SET is_blocked = ${blocked} WHERE id = ${id} RETURNING *`;
-  return rows[0] ? shape(rows[0]) : null;
+export function setBlocked(id: number, blocked: boolean): DeviceRow | null {
+  const row = db().query<RawDevice, { id: number; blocked: boolean }>(`
+    UPDATE devices SET is_blocked = $blocked WHERE id = $id RETURNING *`).get({ id, blocked });
+  return row ? shape(row) : null;
 }
 
-export async function setLabel(id: number, label: string | null, db: Db = sql()): Promise<DeviceRow | null> {
-  const rows = await db`
-    UPDATE devices SET label = ${label} WHERE id = ${id} RETURNING *`;
-  return rows[0] ? shape(rows[0]) : null;
+export function setLabel(id: number, label: string | null): DeviceRow | null {
+  const row = db().query<RawDevice, { id: number; label: string | null }>(`
+    UPDATE devices SET label = $label WHERE id = $id RETURNING *`).get({ id, label });
+  return row ? shape(row) : null;
 }

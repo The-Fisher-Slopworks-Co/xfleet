@@ -4,7 +4,7 @@ import { loadEnv } from "./env";
 
 const good = {
   PORT: "3000",
-  DATABASE_URL: "postgres://u:p@h:5432/d",
+  DATABASE_PATH: "data/xfleet.db",
   ADMIN_USERNAME: "admin",
   ADMIN_PASSWORD_HASH: "$2b$10$abcdefghijklmnopqrstuu",
   SESSION_SECRET: "a".repeat(64),

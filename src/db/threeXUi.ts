@@ -1,6 +1,5 @@
 // src/db/threeXUi.ts
-import { sql, toNum } from "./client";
-import type { SQL } from "bun";
+import { db, type Bindings } from "./client";
 import type { ConfigTransform } from "../shared/schemas";
 
 export type ThreeXUiRow = {
@@ -14,88 +13,97 @@ export type ThreeXUiRow = {
   use_tls: boolean;
   server_id: number;
   config_transforms: ConfigTransform[];
-  last_synced_at: Date | null;
+  last_synced_at: string | null;
   last_sync_status: string | null;
-  inserted_at: Date;
-  updated_at: Date;
+  inserted_at: string;
+  updated_at: string;
 };
 export type ThreeXUiWithVpnServer = ThreeXUiRow & { vpn_server: { id: number; name: string } };
 
-type Db = SQL;
+type RawRow = Omit<ThreeXUiRow, "use_tls" | "config_transforms"> & { use_tls: number; config_transforms: string };
 
-export async function list(db: Db = sql()): Promise<ThreeXUiWithVpnServer[]> {
-  const rows = await db`
+export function list(): ThreeXUiWithVpnServer[] {
+  return db().query<RawRow & { __server_name: string }, []>(`
     SELECT t.*, s.name AS __server_name
     FROM three_x_ui_servers t JOIN servers s ON s.id = t.server_id
-    ORDER BY t.name ASC`;
-  return rows.map(shape);
+    ORDER BY t.name ASC`).all().map(shape);
 }
-export async function get(id: number, db: Db = sql()): Promise<ThreeXUiWithVpnServer | null> {
-  const rows = await db`
+export function get(id: number): ThreeXUiWithVpnServer | null {
+  const row = db().query<RawRow & { __server_name: string }, { id: number }>(`
     SELECT t.*, s.name AS __server_name
     FROM three_x_ui_servers t JOIN servers s ON s.id = t.server_id
-    WHERE t.id = ${id}`;
-  return rows[0] ? shape(rows[0]) : null;
+    WHERE t.id = $id`).get({ id });
+  return row ? shape(row) : null;
 }
-export async function create(attrs: {
+export function create(attrs: {
   name: string; host: string; port: number; web_base_path: string; username: string;
   password: string; use_tls: boolean; server_id: number; config_transforms?: ConfigTransform[];
-}, db: Db = sql()): Promise<ThreeXUiRow> {
-  const rows = await db`
+}): ThreeXUiRow {
+  return shapeThreeXUi(db().query<RawRow, Bindings>(`
     INSERT INTO three_x_ui_servers (name, host, port, web_base_path, username, password, use_tls, server_id, config_transforms)
-    VALUES (${attrs.name}, ${attrs.host}, ${attrs.port}, ${attrs.web_base_path},
-            ${attrs.username}, ${attrs.password}, ${attrs.use_tls}, ${attrs.server_id},
-            ${JSON.stringify(attrs.config_transforms ?? [])}::jsonb)
-    RETURNING *`;
-  return shapeThreeXUi(rows[0]!);
+    VALUES ($name, $host, $port, $web_base_path,
+            $username, $password, $use_tls, $server_id,
+            $config_transforms)
+    RETURNING *`).get({
+    name: attrs.name,
+    host: attrs.host,
+    port: attrs.port,
+    web_base_path: attrs.web_base_path,
+    username: attrs.username,
+    password: attrs.password,
+    use_tls: attrs.use_tls,
+    server_id: attrs.server_id,
+    config_transforms: JSON.stringify(attrs.config_transforms ?? []),
+  })!);
 }
-export async function update(id: number, attrs: Partial<{
+export function update(id: number, attrs: Partial<{
   name: string; host: string; port: number; web_base_path: string; username: string;
   password: string; use_tls: boolean; server_id: number; config_transforms: ConfigTransform[];
-}>, db: Db = sql()): Promise<ThreeXUiRow> {
-  const rows = await db`
+}>): ThreeXUiRow | null {
+  const row = db().query<RawRow, Bindings>(`
     UPDATE three_x_ui_servers SET
-      name = COALESCE(${attrs.name ?? null}, name),
-      host = COALESCE(${attrs.host ?? null}, host),
-      port = COALESCE(${attrs.port ?? null}, port),
-      web_base_path = COALESCE(${attrs.web_base_path ?? null}, web_base_path),
-      username = COALESCE(${attrs.username ?? null}, username),
-      password = COALESCE(${attrs.password ?? null}, password),
-      use_tls = COALESCE(${attrs.use_tls ?? null}, use_tls),
-      server_id = COALESCE(${attrs.server_id ?? null}, server_id),
-      config_transforms = CASE WHEN ${attrs.config_transforms === undefined ? false : true}::boolean
-        THEN ${JSON.stringify(attrs.config_transforms ?? [])}::jsonb ELSE config_transforms END,
-      updated_at = now()
-    WHERE id = ${id}
-    RETURNING *`;
-  return shapeThreeXUi(rows[0]!);
+      name = COALESCE($name, name),
+      host = COALESCE($host, host),
+      port = COALESCE($port, port),
+      web_base_path = COALESCE($web_base_path, web_base_path),
+      username = COALESCE($username, username),
+      password = COALESCE($password, password),
+      use_tls = COALESCE($use_tls, use_tls),
+      server_id = COALESCE($server_id, server_id),
+      config_transforms = COALESCE($config_transforms, config_transforms),
+      updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE id = $id
+    RETURNING *`).get({
+    id,
+    name: attrs.name ?? null,
+    host: attrs.host ?? null,
+    port: attrs.port ?? null,
+    web_base_path: attrs.web_base_path ?? null,
+    username: attrs.username ?? null,
+    password: attrs.password ?? null,
+    use_tls: attrs.use_tls ?? null,
+    server_id: attrs.server_id ?? null,
+    // undefined keeps the stored transforms; [] clears them
+    config_transforms: attrs.config_transforms === undefined ? null : JSON.stringify(attrs.config_transforms),
+  });
+  return row ? shapeThreeXUi(row) : null;
 }
-export async function remove(id: number, db: Db = sql()): Promise<void> {
-  await db`DELETE FROM three_x_ui_servers WHERE id = ${id}`;
+export function remove(id: number): void {
+  db().query<never, { id: number }>("DELETE FROM three_x_ui_servers WHERE id = $id").run({ id });
 }
-export async function updateSyncStatus(id: number, at: Date, status: string, db: Db = sql()): Promise<void> {
-  await db`UPDATE three_x_ui_servers SET last_synced_at = ${at}, last_sync_status = ${status}, updated_at = now() WHERE id = ${id}`;
-}
-
-// jsonb comes back as a parsed array (or a string in some envs); values written
-// through Zod, so trust the shape — mirrors parseHeaders in subFetchJournal.ts.
-function parseTransforms(v: unknown): ConfigTransform[] {
-  if (Array.isArray(v)) return v as ConfigTransform[];
-  if (typeof v === "string") {
-    try {
-      const parsed = JSON.parse(v);
-      return Array.isArray(parsed) ? (parsed as ConfigTransform[]) : [];
-    } catch { return []; }
-  }
-  return [];
-}
-
-function shapeThreeXUi(r: any): ThreeXUiRow {
-  return { ...r, id: toNum(r.id), server_id: toNum(r.server_id), config_transforms: parseTransforms(r.config_transforms) };
+export function updateSyncStatus(id: number, at: Date, status: string): void {
+  db().query<never, { id: number; at: string; status: string }>(`
+    UPDATE three_x_ui_servers
+    SET last_synced_at = $at, last_sync_status = $status, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE id = $id`).run({ id, at: at.toISOString(), status });
 }
 
-function shape(row: any): ThreeXUiWithVpnServer {
-  const { __server_name, ...rest } = row;
+// Values are written through Zod, so trust the stored shape.
+function shapeThreeXUi(r: RawRow): ThreeXUiRow {
+  return { ...r, use_tls: r.use_tls === 1, config_transforms: JSON.parse(r.config_transforms) as ConfigTransform[] };
+}
+
+function shape({ __server_name, ...rest }: RawRow & { __server_name: string }): ThreeXUiWithVpnServer {
   const base = shapeThreeXUi(rest);
-  return { ...base, vpn_server: { id: toNum(row.server_id), name: __server_name } };
+  return { ...base, vpn_server: { id: base.server_id, name: __server_name } };
 }

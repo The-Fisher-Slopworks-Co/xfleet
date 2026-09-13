@@ -15,14 +15,14 @@ export function configsRoutes(env: Env) {
     "/api/admin/users/:id/configs": {
       async GET(req: Request & { params: { id: string } }) {
         const g = guard(req); if (g) return g;
-        return json(await Configs.listForUser(Number(req.params.id)));
+        return json(Configs.listForUser(Number(req.params.id)));
       },
       async POST(req: Request & { params: { id: string } }) {
         const g = guard(req); if (g) return g;
         const body = await readJson<any>(req);
         const parsed = configCreateSchema.safeParse({ ...body, user_id: Number(req.params.id) });
         if (!parsed.success) return badRequest(zodToErrors(parsed.error.issues));
-        return json(await Configs.create(parsed.data), { status: 201 });
+        return json(Configs.create(parsed.data), { status: 201 });
       },
     },
     "/api/admin/configs/:id": {
@@ -30,13 +30,14 @@ export function configsRoutes(env: Env) {
         const g = guard(req); if (g) return g;
         const parsed = configUpdateSchema.safeParse(await readJson(req));
         if (!parsed.success) return badRequest(zodToErrors(parsed.error.issues));
-        return json(await Configs.update(Number(req.params.id), parsed.data));
+        const row = Configs.update(Number(req.params.id), parsed.data);
+        return row ? json(row) : notFound();
       },
       async DELETE(req: Request & { params: { id: string } }) {
         const g = guard(req); if (g) return g;
-        const existing = await Configs.get(Number(req.params.id));
+        const existing = Configs.get(Number(req.params.id));
         if (!existing) return notFound();
-        await Configs.remove(Number(req.params.id));
+        Configs.remove(Number(req.params.id));
         return noContent();
       },
     },

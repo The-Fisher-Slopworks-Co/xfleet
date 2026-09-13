@@ -9,11 +9,10 @@ Useful if you're self-hosting a VPN for yourself and a few people and don't want
 ## Prereqs
 
 - Bun >= 1.2
-- Postgres 14+
+
+Data lives in a single SQLite file at `DATABASE_PATH` (default in `.env.example`: `data/xfleet.db`).
 
 ## Setup
-
-For local dev, `docker compose up -d` starts Postgres with the `xfleet` and `xfleet_test` databases pre-created.
 
 ```sh
 cp .env.example .env
@@ -26,7 +25,6 @@ bun scripts/hash-password.ts 'pass'     # ADMIN_PASSWORD_HASH
 #   ADMIN_PASSWORD_HASH="\$2b\$10\$..."
 # Both docker compose and Bun's dotenv loader correctly strip \$ → $.
 
-createdb xfleet
 bun install
 bun run migrate
 bun run dev
@@ -35,8 +33,7 @@ bun run dev
 ## Tests
 
 ```sh
-createdb xfleet_test
-TEST_DATABASE_URL=postgres://$USER@localhost:5432/xfleet_test bun test
+bun test    # DB tests run against in-memory SQLite, no setup needed
 ```
 
 ## Deploy
@@ -52,15 +49,15 @@ The SSE endpoint `/api/admin/events` requires `proxy_buffering off;` (nginx) or 
 
 ## Docker
 
-A self-contained production example (app + Postgres) lives in `docker-compose.prod.yml`.
+A production example lives in `docker-compose.prod.yml`.
 
 ```sh
 cp .env.example .env
-# generate and fill POSTGRES_PASSWORD plus the same secrets as the non-docker setup
+# fill the same secrets as the non-docker setup
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-The app runs migrations automatically on container start and publishes port 3000. Put your own reverse proxy (nginx/Caddy/etc.) in front — remember `proxy_buffering off;` for the SSE endpoint, and bind to `127.0.0.1:3000` in the compose file if you don't want port 3000 publicly exposed on the host.
+The app runs migrations automatically on container start and publishes port 3000. The database is stored in the `xfleet_data` volume at `/app/data/xfleet.db`. Stop the container before copying it for a backup — the database runs in WAL mode, so a copy taken while it is live can be inconsistent. Put your own reverse proxy (nginx/Caddy/etc.) in front — remember `proxy_buffering off;` for the SSE endpoint, and bind to `127.0.0.1:3000` in the compose file if you don't want port 3000 publicly exposed on the host.
 
 ## License
 

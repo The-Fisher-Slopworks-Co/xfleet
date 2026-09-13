@@ -18,7 +18,7 @@ export function startScheduler(args: { hub: SseHub; cipher: Cipher; retentionDay
   const extSubInFlight = new Map<number, Promise<unknown>>();
 
   async function tickPanels() {
-    const panels = await ThreeXUi.list();
+    const panels = ThreeXUi.list();
     for (const p of panels) {
       if (panelInFlight.has(p.id)) continue;
       const task = syncServer({
@@ -41,7 +41,7 @@ export function startScheduler(args: { hub: SseHub; cipher: Cipher; retentionDay
   }
 
   async function tickExtSub() {
-    const sources = await ExtSubSources.list();
+    const sources = ExtSubSources.list();
     for (const s of sources) {
       if (extSubInFlight.has(s.id)) continue;
       const task = refreshSource({ sourceId: s.id, hub: args.hub, cipher: args.cipher })
@@ -60,7 +60,7 @@ export function startScheduler(args: { hub: SseHub; cipher: Cipher; retentionDay
 
   async function tickRetention() {
     try {
-      const deleted = await SubFetchJournal.pruneOlderThan(args.retentionDays);
+      const deleted = SubFetchJournal.pruneOlderThan(args.retentionDays);
       if (deleted > 0) console.log(`[sub-journal] pruned ${deleted} rows older than ${args.retentionDays}d`);
     } catch (err) {
       console.error("[sub-journal] prune failed:", err);

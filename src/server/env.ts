@@ -3,7 +3,7 @@ import { z } from "zod";
 
 const schema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535),
-  DATABASE_URL: z.string().min(1),
+  DATABASE_PATH: z.string().min(1),
   ADMIN_USERNAME: z.string().min(1),
   ADMIN_PASSWORD_HASH: z.string().min(20),
   SESSION_SECRET: z.string().min(32),
@@ -22,7 +22,7 @@ const schema = z.object({
 
 export type Env = {
   port: number;
-  databaseUrl: string;
+  databasePath: string;
   adminUsername: string;
   adminPasswordHash: string;
   sessionSecret: string;
@@ -42,7 +42,7 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
   const v = parsed.data;
   return {
     port: v.PORT,
-    databaseUrl: v.DATABASE_URL,
+    databasePath: v.DATABASE_PATH,
     adminUsername: v.ADMIN_USERNAME,
     adminPasswordHash: v.ADMIN_PASSWORD_HASH,
     sessionSecret: v.SESSION_SECRET,

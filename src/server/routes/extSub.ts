@@ -23,7 +23,7 @@ export function extSubRoutes(env: Env, cipher: Cipher, hub: SseHub) {
     "/api/admin/ext-sub": {
       async GET(req: Request) {
         const g = guard(req); if (g) return g;
-        const rows = await ExtSubSources.list();
+        const rows = ExtSubSources.list();
         return json(rows.map(({ url: _u, ...rest }) => rest));
       },
       async POST(req: Request) {
@@ -32,7 +32,7 @@ export function extSubRoutes(env: Env, cipher: Cipher, hub: SseHub) {
         if (!parsed.success) return badRequest(zodToErrors(parsed.error.issues));
         try {
           const encrypted = await cipher.encrypt(parsed.data.url);
-          const row = await ExtSubSources.create({
+          const row = ExtSubSources.create({
             name: parsed.data.name,
             url: encrypted,
             user_agent: parsed.data.user_agent,
@@ -68,7 +68,8 @@ export function extSubRoutes(env: Env, cipher: Cipher, hub: SseHub) {
         if (parsed.data.hwid !== undefined) attrs.hwid = parsed.data.hwid;
         if (parsed.data.url !== undefined) attrs.url = await cipher.encrypt(parsed.data.url);
         try {
-          const row = await ExtSubSources.update(Number(req.params.id), attrs);
+          const row = ExtSubSources.update(Number(req.params.id), attrs);
+          if (!row) return notFound();
           const { url: _u, ...rest } = row;
           return json(rest);
         } catch (e: any) {
@@ -77,9 +78,9 @@ export function extSubRoutes(env: Env, cipher: Cipher, hub: SseHub) {
       },
       async DELETE(req: Request & { params: { id: string } }) {
         const g = guard(req); if (g) return g;
-        const existing = await ExtSubSources.get(Number(req.params.id));
+        const existing = ExtSubSources.get(Number(req.params.id));
         if (!existing) return notFound();
-        await ExtSubSources.remove(Number(req.params.id));
+        ExtSubSources.remove(Number(req.params.id));
         return noContent();
       },
     },
@@ -87,7 +88,7 @@ export function extSubRoutes(env: Env, cipher: Cipher, hub: SseHub) {
       async POST(req: Request & { params: { id: string } }) {
         const g = guard(req); if (g) return g;
         const id = Number(req.params.id);
-        const source = await ExtSubSources.get(id);
+        const source = ExtSubSources.get(id);
         if (!source) return notFound();
         void refreshSource({ sourceId: id, hub, cipher })
           .catch(err => console.error("[ext-sub]", err));
@@ -97,14 +98,14 @@ export function extSubRoutes(env: Env, cipher: Cipher, hub: SseHub) {
     "/api/admin/users/:id/ext-sub": {
       async GET(req: Request & { params: { id: string } }) {
         const g = guard(req); if (g) return g;
-        const sourceIds = await ExtSubAssignments.listSourceIdsForUser(Number(req.params.id));
+        const sourceIds = ExtSubAssignments.listSourceIdsForUser(Number(req.params.id));
         return json({ source_ids: sourceIds });
       },
       async PUT(req: Request & { params: { id: string } }) {
         const g = guard(req); if (g) return g;
         const parsed = extSubAssignSchema.safeParse(await readJson(req));
         if (!parsed.success) return badRequest(zodToErrors(parsed.error.issues));
-        await ExtSubAssignments.setForUser(Number(req.params.id), parsed.data.source_ids);
+        ExtSubAssignments.setForUser(Number(req.params.id), parsed.data.source_ids);
         return json({ source_ids: parsed.data.source_ids });
       },
     },

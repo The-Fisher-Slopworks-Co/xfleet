@@ -1,29 +1,29 @@
 // src/db/migrate.ts
 import { readdir, readFile } from "node:fs/promises";
 import { join, basename } from "node:path";
-import { sql } from "./client";
+import { db } from "./client";
 
 export async function runMigrations(migrationsDir = "migrations"): Promise<void> {
-  const db = sql();
+  const conn = db();
   const files = (await readdir(migrationsDir)).filter(f => f.endsWith(".sql")).sort();
 
-  await db`CREATE TABLE IF NOT EXISTS schema_migrations (
+  conn.run(`CREATE TABLE IF NOT EXISTS schema_migrations (
     version text PRIMARY KEY,
-    applied_at timestamptz NOT NULL DEFAULT now()
-  )`;
+    applied_at text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  )`);
 
-  const appliedRows = await db`SELECT version FROM schema_migrations`;
-  const applied = new Set(appliedRows.map((r: { version: string }) => r.version));
+  const appliedRows = conn.query<{ version: string }, []>("SELECT version FROM schema_migrations").all();
+  const applied = new Set(appliedRows.map(r => r.version));
 
   for (const file of files) {
     const version = basename(file, ".sql");
     if (applied.has(version)) continue;
     const contents = await readFile(join(migrationsDir, file), "utf8");
     console.log(`[migrate] applying ${version}`);
-    await db.begin(async (tx: typeof db) => {
-      await tx.unsafe(contents);
-      await tx`INSERT INTO schema_migrations (version) VALUES (${version})`;
-    });
+    conn.transaction(() => {
+      conn.run(contents);
+      conn.query<never, { version: string }>("INSERT INTO schema_migrations (version) VALUES ($version)").run({ version });
+    })();
   }
   console.log("[migrate] up to date");
 }
