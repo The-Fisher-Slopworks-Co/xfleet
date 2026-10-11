@@ -12,6 +12,8 @@ bun run migrate      # apply migrations/*.sql in order
 bun run hash-password 'pass'   # generate ADMIN_PASSWORD_HASH
 bun run start        # production (NODE_ENV=production)
 bun test             # DB tests use in-memory SQLite (__resetDbForTests in db/client.ts)
+bun run check        # the full gate: typecheck, oxlint, prettier, knip, reuse, tests
+bun run format       # apply Prettier
 ```
 
 ## Definition of done
@@ -25,7 +27,7 @@ bun test             # DB tests use in-memory SQLite (__resetDbForTests in db/cl
   - Subject: lowercase start, imperative, no trailing period.
   - The body describes this PR alone, following the PR template.
 - **No AI attribution.** No `Assisted-by:` / `Co-Authored-By: <LLM>` trailers, no agent as commit author or committer, and no "Generated with/by …" lines or agent-platform links in PR bodies. The PR body becomes the squash commit body, so the PR title workflow checks the title, the body and every commit of the PR.
-- **Before opening:** `bunx tsc --noEmit` and `bun test` green, then open the PR and report its URL.
+- **Before opening:** `bun run check` green, then open the PR and report its URL.
 - **Never merge locally.** Merging happens on GitHub, squash only.
 
 ## Architecture

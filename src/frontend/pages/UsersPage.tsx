@@ -22,6 +22,10 @@ type UserRow = {
   inserted_at: string;
 };
 
+function subUrl(t: string) {
+  return `${window.location.origin}/sub/${t}`;
+}
+
 export function UsersPage() {
   const { data: users, refetch } = useJSON<UserRow[]>("/api/admin/users");
   const [modal, setModal] = useState<
@@ -69,10 +73,6 @@ export function UsersPage() {
       "/api/admin/users/generate-token",
     );
     setToken(r.token);
-  }
-
-  function subUrl(t: string) {
-    return `${window.location.origin}/sub/${t}`;
   }
 
   return (

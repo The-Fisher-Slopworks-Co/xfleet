@@ -30,7 +30,7 @@ export type SyncEvent =
     }
   | { type: "sub_fetch"; row: SubFetchEventRow };
 
-export function useSyncEvents(onEvent: (e: SyncEvent) => void): void {
+function useSyncEvents(onEvent: (e: SyncEvent) => void): void {
   // Keep the callback in a ref so the EventSource is opened exactly once per mount.
   // A state update inside the callback would otherwise churn the effect and reconnect on every event.
   const cbRef = useRef(onEvent);

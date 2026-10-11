@@ -2,7 +2,7 @@
 export function json(body: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(body), {
     ...init,
-    headers: { "content-type": "application/json", ...(init.headers || {}) },
+    headers: { "content-type": "application/json", ...init.headers },
   });
 }
 
@@ -11,7 +11,7 @@ export function text(body: string, init: ResponseInit = {}): Response {
     ...init,
     headers: {
       "content-type": "text/plain; charset=utf-8",
-      ...(init.headers || {}),
+      ...init.headers,
     },
   });
 }
@@ -30,10 +30,6 @@ export function unauthorized(): Response {
 
 export function notFound(): Response {
   return json({ error: "not_found" }, { status: 404 });
-}
-
-export function serverError(message = "internal_error"): Response {
-  return json({ error: message }, { status: 500 });
 }
 
 export async function readJson<T>(req: Request): Promise<T> {

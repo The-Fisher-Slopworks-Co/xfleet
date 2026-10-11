@@ -9,11 +9,7 @@ import * as Users from "../db/users";
 import { makeSseHub } from "../server/sseHub";
 import { makeCipher } from "./crypto";
 import { syncServer } from "./sync";
-import type {
-  PanelServer,
-  LoginResult,
-  InboundsResult,
-} from "./threeXUiClient";
+import type { LoginResult, InboundsResult } from "./threeXUiClient";
 
 const KEY = Buffer.alloc(32, 1).toString("base64");
 
@@ -30,8 +26,8 @@ function fakeClient(responses: {
   inbounds: InboundsResult;
 }) {
   return {
-    login: async (_: PanelServer) => responses.login,
-    listInbounds: async (_: PanelServer, __: string) => responses.inbounds,
+    login: async () => responses.login,
+    listInbounds: async () => responses.inbounds,
   };
 }
 

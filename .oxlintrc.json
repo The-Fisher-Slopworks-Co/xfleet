@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "rules": {
+    // Every `.sort()` here runs on an array built one expression earlier —
+    // `[...x]`, `.filter()`, `Object.keys()` — so there is nothing shared left
+    // to mutate, and `toSorted()` would only add a copy.
+    "unicorn/no-array-sort": "off",
+    // A leading underscore marks the test-only escape hatches in `db/client.ts`
+    // (`__resetDbForTests`, `__truncateForTests`). They are deliberate.
+    "no-underscore-dangle": "off"
+  },
+  "ignorePatterns": ["node_modules", "dist"]
+}

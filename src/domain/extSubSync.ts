@@ -7,7 +7,7 @@ import type { FetchResult, FetchError, FetchHeaders } from "./extSubFetcher";
 import type { Cipher } from "./crypto";
 import type { SseHub } from "../server/sseHub";
 
-export type ExtSubSyncStats = { inserted: number; deleted: number };
+type ExtSubSyncStats = { inserted: number; deleted: number };
 export type ExtSubSyncResult =
   { ok: true; stats: ExtSubSyncStats } | { ok: false; error: string };
 

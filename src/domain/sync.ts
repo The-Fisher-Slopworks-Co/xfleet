@@ -16,7 +16,7 @@ import type {
   ClientError,
 } from "./threeXUiClient";
 
-export type SyncStats = {
+type SyncStats = {
   created: number;
   updated: number;
   deleted: number;

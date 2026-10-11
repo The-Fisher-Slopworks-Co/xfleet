@@ -1,7 +1,7 @@
 // src/db/subFetchJournal.ts
 import { db, type Bindings } from "./client";
 
-export type BlockedBy = "device" | "ip";
+type BlockedBy = "device" | "ip";
 
 export type SubFetchJournalRow = {
   id: number;

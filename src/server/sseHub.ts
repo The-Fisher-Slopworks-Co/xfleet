@@ -1,5 +1,5 @@
 // src/server/sseHub.ts
-export type SubFetchEventRow = {
+type SubFetchEventRow = {
   id: number;
   user_id: number | null;
   attempted_token: string;
