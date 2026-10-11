@@ -17,20 +17,35 @@ beforeEach(() => {
   __truncateForTests();
 });
 
-const fakeFetch = (body: string): Fetcher =>
+const fakeFetch =
+  (body: string): Fetcher =>
   async () => ({ ok: true as const, body });
-const failFetch: Fetcher = async () => ({ ok: false as const, error: { kind: "connection_failed" } });
+const failFetch: Fetcher = async () => ({
+  ok: false as const,
+  error: { kind: "connection_failed" },
+});
 
 test("refreshSource stores parsed links and records ok status", async () => {
   const cipher = await makeCipher(KEY);
   const src = ExtSubSources.create({
-    name: "p1", url: await cipher.encrypt("https://prov/x"),
-    user_agent: "ua", app_version: "", device_model: "", ver_os: "", device_os: "", hwid: "",
+    name: "p1",
+    url: await cipher.encrypt("https://prov/x"),
+    user_agent: "ua",
+    app_version: "",
+    device_model: "",
+    ver_os: "",
+    device_os: "",
+    hwid: "",
   });
   const hub = makeSseHub();
   const body = "vless://a#HK-01\nvmess://b";
 
-  const res = await refreshSource({ sourceId: src.id, hub, cipher, fetcher: fakeFetch(body) });
+  const res = await refreshSource({
+    sourceId: src.id,
+    hub,
+    cipher,
+    fetcher: fakeFetch(body),
+  });
   expect(res.ok).toBe(true);
   if (res.ok) {
     expect(res.stats.inserted).toBe(2);
@@ -49,43 +64,80 @@ test("refreshSource stores parsed links and records ok status", async () => {
 test("second refresh fully replaces the link set", async () => {
   const cipher = await makeCipher(KEY);
   const src = ExtSubSources.create({
-    name: "p1", url: await cipher.encrypt("https://prov/x"),
-    user_agent: "ua", app_version: "", device_model: "", ver_os: "", device_os: "", hwid: "",
+    name: "p1",
+    url: await cipher.encrypt("https://prov/x"),
+    user_agent: "ua",
+    app_version: "",
+    device_model: "",
+    ver_os: "",
+    device_os: "",
+    hwid: "",
   });
   const hub = makeSseHub();
 
-  await refreshSource({ sourceId: src.id, hub, cipher, fetcher: fakeFetch("vless://old1\nvless://old2") });
-  const res = await refreshSource({ sourceId: src.id, hub, cipher, fetcher: fakeFetch("vless://new1") });
+  await refreshSource({
+    sourceId: src.id,
+    hub,
+    cipher,
+    fetcher: fakeFetch("vless://old1\nvless://old2"),
+  });
+  const res = await refreshSource({
+    sourceId: src.id,
+    hub,
+    cipher,
+    fetcher: fakeFetch("vless://new1"),
+  });
   expect(res.ok).toBe(true);
   if (res.ok) {
     expect(res.stats.inserted).toBe(1);
     expect(res.stats.deleted).toBe(2);
   }
   const links = ExtSubLinks.listForSource(src.id);
-  expect(links.map(l => l.uri)).toEqual(["vless://new1"]);
+  expect(links.map((l) => l.uri)).toEqual(["vless://new1"]);
 });
 
 test("records error status on fetch failure and keeps old links untouched", async () => {
   const cipher = await makeCipher(KEY);
   const src = ExtSubSources.create({
-    name: "p1", url: await cipher.encrypt("https://prov/x"),
-    user_agent: "ua", app_version: "", device_model: "", ver_os: "", device_os: "", hwid: "",
+    name: "p1",
+    url: await cipher.encrypt("https://prov/x"),
+    user_agent: "ua",
+    app_version: "",
+    device_model: "",
+    ver_os: "",
+    device_os: "",
+    hwid: "",
   });
   const hub = makeSseHub();
-  await refreshSource({ sourceId: src.id, hub, cipher, fetcher: fakeFetch("vless://keep") });
+  await refreshSource({
+    sourceId: src.id,
+    hub,
+    cipher,
+    fetcher: fakeFetch("vless://keep"),
+  });
 
-  const res = await refreshSource({ sourceId: src.id, hub, cipher, fetcher: failFetch });
+  const res = await refreshSource({
+    sourceId: src.id,
+    hub,
+    cipher,
+    fetcher: failFetch,
+  });
   expect(res.ok).toBe(false);
   const after = ExtSubSources.get(src.id);
   expect(after?.last_fetch_status).toBe("error: connection failed");
   const links = ExtSubLinks.listForSource(src.id);
-  expect(links.map(l => l.uri)).toEqual(["vless://keep"]);
+  expect(links.map((l) => l.uri)).toEqual(["vless://keep"]);
 });
 
 test("returns error when source does not exist", async () => {
   const cipher = await makeCipher(KEY);
   const hub = makeSseHub();
-  const res = await refreshSource({ sourceId: 999, hub, cipher, fetcher: fakeFetch("") });
+  const res = await refreshSource({
+    sourceId: 999,
+    hub,
+    cipher,
+    fetcher: fakeFetch(""),
+  });
   expect(res.ok).toBe(false);
   if (!res.ok) expect(res.error).toBe("source not found");
 });
@@ -93,8 +145,14 @@ test("returns error when source does not exist", async () => {
 test("broadcasts ext_sub_started then ext_sub_complete", async () => {
   const cipher = await makeCipher(KEY);
   const src = ExtSubSources.create({
-    name: "p1", url: await cipher.encrypt("https://prov/x"),
-    user_agent: "ua", app_version: "", device_model: "", ver_os: "", device_os: "", hwid: "",
+    name: "p1",
+    url: await cipher.encrypt("https://prov/x"),
+    user_agent: "ua",
+    app_version: "",
+    device_model: "",
+    ver_os: "",
+    device_os: "",
+    hwid: "",
   });
   const hub = makeSseHub();
   const events: any[] = [];
@@ -113,7 +171,12 @@ test("broadcasts ext_sub_started then ext_sub_complete", async () => {
     }
   })();
 
-  await refreshSource({ sourceId: src.id, hub, cipher, fetcher: fakeFetch("vless://a") });
+  await refreshSource({
+    sourceId: src.id,
+    hub,
+    cipher,
+    fetcher: fakeFetch("vless://a"),
+  });
   await collect;
   sub.close();
 

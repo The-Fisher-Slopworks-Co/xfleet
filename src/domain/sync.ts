@@ -9,10 +9,21 @@ import { generateToken } from "./passwordGenerator";
 import type { Cipher } from "./crypto";
 import type { ConfigTransform } from "../shared/schemas";
 import type { SseHub } from "../server/sseHub";
-import type { PanelServer, LoginResult, InboundsResult, ClientError } from "./threeXUiClient";
+import type {
+  PanelServer,
+  LoginResult,
+  InboundsResult,
+  ClientError,
+} from "./threeXUiClient";
 
-export type SyncStats = { created: number; updated: number; deleted: number; usersCreated: number };
-export type SyncResult = { ok: true; stats: SyncStats } | { ok: false; error: string };
+export type SyncStats = {
+  created: number;
+  updated: number;
+  deleted: number;
+  usersCreated: number;
+};
+export type SyncResult =
+  { ok: true; stats: SyncStats } | { ok: false; error: string };
 
 export type SyncClient = {
   login: (s: PanelServer) => Promise<LoginResult>;
@@ -20,7 +31,10 @@ export type SyncClient = {
 };
 
 export async function syncServer(args: {
-  panelId: number; client: SyncClient; hub: SseHub; cipher: Cipher;
+  panelId: number;
+  client: SyncClient;
+  hub: SseHub;
+  cipher: Cipher;
 }): Promise<SyncResult> {
   const { panelId, client, hub, cipher } = args;
   hub.broadcast({ type: "sync_started", serverId: panelId });
@@ -43,7 +57,11 @@ export async function syncServer(args: {
   return result;
 }
 
-async function doSync(panelId: number, client: SyncClient, cipher: Cipher): Promise<SyncResult> {
+async function doSync(
+  panelId: number,
+  client: SyncClient,
+  cipher: Cipher,
+): Promise<SyncResult> {
   const panel = ThreeXUi.get(panelId);
   if (!panel) return { ok: false, error: "panel not found" };
 
@@ -56,15 +74,19 @@ async function doSync(panelId: number, client: SyncClient, cipher: Cipher): Prom
   const inb = await client.listInbounds(panelServer, login.cookie);
   if (!inb.ok) return { ok: false, error: sanitize(inb.error) };
 
-  const vless = inb.inbounds.filter(i => i.protocol === "vless");
+  const vless = inb.inbounds.filter((i) => i.protocol === "vless");
   const entries = buildEntries(panel.host, vless, panel.config_transforms);
 
   // Synchronous transaction: nothing else touches the DB until it commits, so
   // concurrent syncs of the same panel (scheduler + manual trigger) serialize.
   const stats: SyncStats = db().transaction(() => {
-    let created = 0, updated = 0, usersCreated = 0;
+    let created = 0,
+      updated = 0,
+      usersCreated = 0;
 
-    const byEmail = new Map(Configs.listByPanelEmails(panelId).map(c => [c.external_email, c]));
+    const byEmail = new Map(
+      Configs.listByPanelEmails(panelId).map((c) => [c.external_email, c]),
+    );
 
     const syncedEmails: string[] = [];
     for (const entry of entries) {
@@ -73,8 +95,12 @@ async function doSync(panelId: number, client: SyncClient, cipher: Cipher): Prom
       if (createdUser) usersCreated++;
       const prev = byEmail.get(entry.email);
       const attrs = {
-        user_id: user.id, server_id: panel.server_id, config: entry.link,
-        tag: entry.tag || null, three_x_ui_server_id: panelId, external_email: entry.email,
+        user_id: user.id,
+        server_id: panel.server_id,
+        config: entry.link,
+        tag: entry.tag || null,
+        three_x_ui_server_id: panelId,
+        external_email: entry.email,
       };
       if (!prev) {
         Configs.create(attrs);
@@ -97,14 +123,25 @@ function buildEntries(
   inbounds: any[],
   transforms: ConfigTransform[] = [],
 ): Array<{ email: string; username: string; link: string; tag: string }> {
-  const byTag = new Map(transforms.map(t => [t.tag, t]));
-  const out: Array<{ email: string; username: string; link: string; tag: string }> = [];
+  const byTag = new Map(transforms.map((t) => [t.tag, t]));
+  const out: Array<{
+    email: string;
+    username: string;
+    link: string;
+    tag: string;
+  }> = [];
   for (const inbound of inbounds) {
     let settings: any;
-    try { settings = JSON.parse(inbound.settings || "{}"); } catch { continue; }
+    try {
+      settings = JSON.parse(inbound.settings || "{}");
+    } catch {
+      continue;
+    }
     const tag = inbound.remark || "";
     const rule = byTag.get(tag);
-    const override: LinkOverride | undefined = rule ? { port: rule.port } : undefined;
+    const override: LinkOverride | undefined = rule
+      ? { port: rule.port }
+      : undefined;
     const clients = (settings.clients || []).filter((c: any) => c.enable);
     for (const c of clients) {
       const email = String(c.email ?? "");
@@ -125,18 +162,29 @@ function parseUsername(email: string): string | null {
   return u || null;
 }
 
-function findOrCreateUser(username: string): { user: { id: number }; created: boolean } {
+function findOrCreateUser(username: string): {
+  user: { id: number };
+  created: boolean;
+} {
   const existing = Users.getByUsername(username);
   if (existing) return { user: existing, created: false };
-  return { user: Users.create({ username, token: generateToken(32) }), created: true };
+  return {
+    user: Users.create({ username, token: generateToken(32) }),
+    created: true,
+  };
 }
 
 function sanitize(e: ClientError): string {
   switch (e.kind) {
-    case "auth_failed": return "authentication failed";
-    case "no_cookie": return "no session cookie returned";
-    case "unexpected_status": return `unexpected HTTP status ${e.status}`;
-    case "connection_failed": return "connection failed";
-    case "api_error": return `API error: ${e.msg.slice(0, 200)}`;
+    case "auth_failed":
+      return "authentication failed";
+    case "no_cookie":
+      return "no session cookie returned";
+    case "unexpected_status":
+      return `unexpected HTTP status ${e.status}`;
+    case "connection_failed":
+      return "connection failed";
+    case "api_error":
+      return `API error: ${e.msg.slice(0, 200)}`;
   }
 }

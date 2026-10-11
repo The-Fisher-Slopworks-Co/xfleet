@@ -16,26 +16,36 @@ export function subFetchJournalRoutes(env: Env) {
   return {
     "/api/admin/sub-journal": {
       async GET(req: Request) {
-        const g = guard(req); if (g) return g;
+        const g = guard(req);
+        if (g) return g;
         const url = new URL(req.url);
         const rows = SubFetchJournal.list({
           userId: parseId(url.searchParams.get("user_id")),
           beforeId: parseId(url.searchParams.get("before_id")),
-          limit: parseLimit(url.searchParams.get("limit"), DEFAULT_LIMIT, MAX_LIMIT),
+          limit: parseLimit(
+            url.searchParams.get("limit"),
+            DEFAULT_LIMIT,
+            MAX_LIMIT,
+          ),
         });
         return json(rows);
       },
     },
     "/api/admin/users/:id/sub-journal": {
       async GET(req: Request & { params: { id: string } }) {
-        const g = guard(req); if (g) return g;
+        const g = guard(req);
+        if (g) return g;
         const url = new URL(req.url);
         const userId = Number(req.params.id);
         if (!Number.isFinite(userId) || userId <= 0) return json([]);
         const rows = SubFetchJournal.list({
           userId,
           beforeId: parseId(url.searchParams.get("before_id")),
-          limit: parseLimit(url.searchParams.get("limit"), DEFAULT_LIMIT, MAX_LIMIT),
+          limit: parseLimit(
+            url.searchParams.get("limit"),
+            DEFAULT_LIMIT,
+            MAX_LIMIT,
+          ),
         });
         return json(rows);
       },

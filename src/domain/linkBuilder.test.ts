@@ -4,7 +4,11 @@ import { buildVlessLink } from "./linkBuilder";
 
 const UUID = "11111111-2222-3333-4444-555555555555";
 
-function vless(inbound: Record<string, unknown>, client: Record<string, unknown> = { id: UUID }, host = "example.com") {
+function vless(
+  inbound: Record<string, unknown>,
+  client: Record<string, unknown> = { id: UUID },
+  host = "example.com",
+) {
   const result = buildVlessLink(host, inbound as any, client as any);
   if (!result.ok) throw new Error(`expected ok, got ${result.error}`);
   return result.link;
@@ -13,13 +17,23 @@ function vless(inbound: Record<string, unknown>, client: Record<string, unknown>
 test("override.port replaces the inbound port", () => {
   const result = buildVlessLink(
     "example.com",
-    { protocol: "vless", port: 8445, streamSettings: JSON.stringify({ network: "tcp", security: "none", tcpSettings: {} }) } as any,
+    {
+      protocol: "vless",
+      port: 8445,
+      streamSettings: JSON.stringify({
+        network: "tcp",
+        security: "none",
+        tcpSettings: {},
+      }),
+    } as any,
     { id: UUID } as any,
     { port: 443 },
   );
   expect(result.ok).toBe(true);
   if (result.ok) {
-    expect(result.link).toBe(`vless://${UUID}@example.com:443?headerType=none&security=none&type=tcp`);
+    expect(result.link).toBe(
+      `vless://${UUID}@example.com:443?headerType=none&security=none&type=tcp`,
+    );
   }
 });
 
@@ -27,7 +41,15 @@ test("override with undefined/no port keeps the inbound port", () => {
   for (const override of [{ port: undefined }, undefined, {}]) {
     const r = buildVlessLink(
       "example.com",
-      { protocol: "vless", port: 8445, streamSettings: JSON.stringify({ network: "tcp", security: "none", tcpSettings: {} }) } as any,
+      {
+        protocol: "vless",
+        port: 8445,
+        streamSettings: JSON.stringify({
+          network: "tcp",
+          security: "none",
+          tcpSettings: {},
+        }),
+      } as any,
       { id: UUID } as any,
       override,
     );
@@ -37,7 +59,11 @@ test("override with undefined/no port keeps the inbound port", () => {
 });
 
 test("non-vless protocol returns unsupported_protocol", () => {
-  const r = buildVlessLink("h", { protocol: "trojan" } as any, { id: UUID } as any);
+  const r = buildVlessLink(
+    "h",
+    { protocol: "trojan" } as any,
+    { id: UUID } as any,
+  );
   expect(r.ok).toBe(false);
   if (!r.ok) expect(r.error).toBe("unsupported_protocol");
 });
@@ -46,7 +72,11 @@ test("tcp default (no header, security none)", () => {
   const link = vless({
     protocol: "vless",
     port: 443,
-    streamSettings: JSON.stringify({ network: "tcp", security: "none", tcpSettings: {} }),
+    streamSettings: JSON.stringify({
+      network: "tcp",
+      security: "none",
+      tcpSettings: {},
+    }),
   });
   expect(link).toBe(
     `vless://${UUID}@example.com:443?headerType=none&security=none&type=tcp`,
@@ -60,7 +90,12 @@ test("tcp with http header includes path and host", () => {
     streamSettings: JSON.stringify({
       network: "tcp",
       security: "none",
-      tcpSettings: { header: { type: "http", request: { path: ["/ws"], headers: { Host: ["example.org"] } } } },
+      tcpSettings: {
+        header: {
+          type: "http",
+          request: { path: ["/ws"], headers: { Host: ["example.org"] } },
+        },
+      },
     }),
   });
   expect(link.includes("headerType=http")).toBe(true);
@@ -72,7 +107,11 @@ test("ws transport includes path and host", () => {
   const link = vless({
     protocol: "vless",
     port: 8080,
-    streamSettings: JSON.stringify({ network: "ws", security: "none", wsSettings: { path: "/abc", host: "h.example" } }),
+    streamSettings: JSON.stringify({
+      network: "ws",
+      security: "none",
+      wsSettings: { path: "/abc", host: "h.example" },
+    }),
   });
   expect(link.includes("type=ws")).toBe(true);
   expect(link.includes("path=%2Fabc")).toBe(true);
@@ -145,7 +184,11 @@ test("fallback address uses host when listen is empty/0.0.0.0", () => {
       protocol: "vless",
       port: 1,
       listen,
-      streamSettings: JSON.stringify({ network: "tcp", security: "none", tcpSettings: {} }),
+      streamSettings: JSON.stringify({
+        network: "tcp",
+        security: "none",
+        tcpSettings: {},
+      }),
     });
     expect(link.includes("@example.com:1")).toBe(true);
   }
@@ -156,7 +199,11 @@ test("non-fallback listen address is used directly", () => {
     protocol: "vless",
     port: 1,
     listen: "10.0.0.2",
-    streamSettings: JSON.stringify({ network: "tcp", security: "none", tcpSettings: {} }),
+    streamSettings: JSON.stringify({
+      network: "tcp",
+      security: "none",
+      tcpSettings: {},
+    }),
   });
   expect(link.includes("@10.0.0.2:1")).toBe(true);
 });
@@ -180,10 +227,14 @@ test("query params are sorted alphabetically", () => {
   const link = vless({
     protocol: "vless",
     port: 1,
-    streamSettings: JSON.stringify({ network: "ws", security: "none", wsSettings: { path: "/x", host: "y" } }),
+    streamSettings: JSON.stringify({
+      network: "ws",
+      security: "none",
+      wsSettings: { path: "/x", host: "y" },
+    }),
   });
   const q = link.split("?")[1]!;
-  const keys = q.split("&").map(kv => kv.split("=")[0]!);
+  const keys = q.split("&").map((kv) => kv.split("=")[0]!);
   const sorted = [...keys].sort();
   expect(keys).toEqual(sorted);
 });

@@ -11,7 +11,9 @@ test("parses plaintext newline-delimited URIs", () => {
 
 test("strips #fragment into label with URL-decoding", () => {
   const body = "vless://abc@h:443#HK%2001%20premium";
-  expect(parseSubBody(body)).toEqual([{ uri: "vless://abc@h:443", label: "HK 01 premium" }]);
+  expect(parseSubBody(body)).toEqual([
+    { uri: "vless://abc@h:443", label: "HK 01 premium" },
+  ]);
 });
 
 test("handles \\r\\n line endings", () => {

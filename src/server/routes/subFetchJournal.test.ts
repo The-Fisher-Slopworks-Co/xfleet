@@ -8,9 +8,16 @@ import { issueSession } from "../session";
 import type { Env } from "../env";
 
 const env = {
-  profileTitle: "VPN", adminUsername: "admin", adminPasswordHash: "",
-  sessionSecret: "x".repeat(64), masterKey: "", databasePath: "", port: 0,
-  publicBaseUrl: "https://vpn.example.com", trustProxy: false, subJournalRetentionDays: 90,
+  profileTitle: "VPN",
+  adminUsername: "admin",
+  adminPasswordHash: "",
+  sessionSecret: "x".repeat(64),
+  masterKey: "",
+  databasePath: "",
+  port: 0,
+  publicBaseUrl: "https://vpn.example.com",
+  trustProxy: false,
+  subJournalRetentionDays: 90,
 } satisfies Env;
 
 const authCookie = () =>
@@ -30,16 +37,26 @@ async function seed() {
   // 5 alice rows, then 3 bob rows (bob newest)
   for (let i = 0; i < 5; i++) {
     SubFetchJournal.record({
-      user_id: alice.id, attempted_token: "a", ip: "1.1.1.1",
-      user_agent: "v2raytun", headers: { "user-agent": "v2raytun" }, status_code: 200,
-      device_id: null, blocked_by: null,
+      user_id: alice.id,
+      attempted_token: "a",
+      ip: "1.1.1.1",
+      user_agent: "v2raytun",
+      headers: { "user-agent": "v2raytun" },
+      status_code: 200,
+      device_id: null,
+      blocked_by: null,
     });
   }
   for (let i = 0; i < 3; i++) {
     SubFetchJournal.record({
-      user_id: bob.id, attempted_token: "b", ip: "2.2.2.2",
-      user_agent: "hiddify", headers: { "user-agent": "hiddify" }, status_code: 200,
-      device_id: null, blocked_by: null,
+      user_id: bob.id,
+      attempted_token: "b",
+      ip: "2.2.2.2",
+      user_agent: "hiddify",
+      headers: { "user-agent": "hiddify" },
+      status_code: 200,
+      device_id: null,
+      blocked_by: null,
     });
   }
   return { alice, bob };
@@ -57,7 +74,9 @@ test("GET /api/admin/sub-journal returns all rows newest-first", async () => {
   await seed();
   const routes = subFetchJournalRoutes(env);
   const res = await routes["/api/admin/sub-journal"].GET(
-    new Request("http://x/api/admin/sub-journal", { headers: { cookie: authCookie() } }),
+    new Request("http://x/api/admin/sub-journal", {
+      headers: { cookie: authCookie() },
+    }),
   );
   expect(res.status).toBe(200);
   const body = await res.json();
@@ -87,7 +106,9 @@ test("GET /api/admin/sub-journal supports keyset pagination via before_id", asyn
   await seed();
   const routes = subFetchJournalRoutes(env);
   const first = await routes["/api/admin/sub-journal"].GET(
-    new Request("http://x/api/admin/sub-journal?limit=3", { headers: { cookie: authCookie() } }),
+    new Request("http://x/api/admin/sub-journal?limit=3", {
+      headers: { cookie: authCookie() },
+    }),
   );
   const firstBody = await first.json();
   expect(firstBody).toHaveLength(3);

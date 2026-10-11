@@ -6,14 +6,31 @@ import { Kbd } from "../components/terminal/Kbd";
 import { UrlBlock } from "../components/terminal/UrlBlock";
 
 const IOS_URL = "https://apps.apple.com/en/app/v2raytun/id6476628951";
-const ANDROID_URL = "https://play.google.com/store/apps/details?id=com.v2raytun.android";
+const ANDROID_URL =
+  "https://play.google.com/store/apps/details?id=com.v2raytun.android";
 
 type AltApp = { name: string; platforms: string; url: string };
 const ALT_APPS: AltApp[] = [
-  { name: "v2rayNG", platforms: "Android", url: "https://github.com/2dust/v2rayNG" },
-  { name: "NekoBox", platforms: "Android", url: "https://github.com/MatsuriDayo/NekoBoxForAndroid" },
-  { name: "Hiddify", platforms: "iOS · Android · Desktop", url: "https://hiddify.com/" },
-  { name: "Throne", platforms: "Desktop", url: "https://github.com/throneproj/Throne" },
+  {
+    name: "v2rayNG",
+    platforms: "Android",
+    url: "https://github.com/2dust/v2rayNG",
+  },
+  {
+    name: "NekoBox",
+    platforms: "Android",
+    url: "https://github.com/MatsuriDayo/NekoBoxForAndroid",
+  },
+  {
+    name: "Hiddify",
+    platforms: "iOS · Android · Desktop",
+    url: "https://hiddify.com/",
+  },
+  {
+    name: "Throne",
+    platforms: "Desktop",
+    url: "https://github.com/throneproj/Throne",
+  },
 ];
 
 type Lang = "ru" | "en";
@@ -27,7 +44,8 @@ export function InstallPage() {
 
   useEffect(() => {
     if (!token) return;
-    api.get<Data>(`/api/public/sub/${token}`)
+    api
+      .get<Data>(`/api/public/sub/${token}`)
       .then(setData)
       .catch(() => setNotFound(true));
     if (location.pathname !== `/sub/${token}`) {
@@ -38,7 +56,9 @@ export function InstallPage() {
   if (notFound) {
     return (
       <main className="min-h-screen grid place-items-center p-6">
-        <div className="text-muted-foreground">! unknown subscription token</div>
+        <div className="text-muted-foreground">
+          ! unknown subscription token
+        </div>
       </main>
     );
   }
@@ -77,13 +97,19 @@ export function InstallPage() {
 
         <LangBar lang={lang} onChange={setLang} />
 
-        <Section variant="recommended" tag={t.tagRecommended} title={t.recTitle}>
+        <Section
+          variant="recommended"
+          tag={t.tagRecommended}
+          title={t.recTitle}
+        >
           <ol className="list-decimal pl-5 ml-4 space-y-2.5 marker:text-muted-foreground">
             <li>
               {t.step1}
               <div className="flex flex-wrap gap-2 mt-2">
                 <StoreLink href={IOS_URL}>[ iOS · App Store ]</StoreLink>
-                <StoreLink href={ANDROID_URL}>[ Android · Google Play ]</StoreLink>
+                <StoreLink href={ANDROID_URL}>
+                  [ Android · Google Play ]
+                </StoreLink>
               </div>
             </li>
             <li>
@@ -95,7 +121,8 @@ export function InstallPage() {
               {t.step4Pre} <Kbd>+</Kbd> {t.step4Post}
             </li>
             <li>
-              {t.step5Pre} <b className="text-foreground">{t.step5Bold}</b>{t.step5Post}
+              {t.step5Pre} <b className="text-foreground">{t.step5Bold}</b>
+              {t.step5Post}
             </li>
           </ol>
         </Section>
@@ -106,11 +133,12 @@ export function InstallPage() {
               {t.testStep1Pre} <Kbd>⋮</Kbd> {t.testStep1Post}
             </li>
             <li>
-              {t.testStep2Pre} <b className="text-foreground">{t.testStep2Bold}</b>{t.testStep2Post}
+              {t.testStep2Pre}{" "}
+              <b className="text-foreground">{t.testStep2Bold}</b>
+              {t.testStep2Post}
             </li>
             <li>
-              {t.testStep3Pre}{" "}
-              {t.testStep3Green}
+              {t.testStep3Pre} {t.testStep3Green}
               {t.testStep3Mid}{" "}
               <span className="text-destructive">{t.testStep3Dead}</span>
               {t.testStep3Post}
@@ -122,8 +150,11 @@ export function InstallPage() {
         <Section variant="alt" tag={t.tagAlt} title={t.altTitle}>
           <p className="text-xs text-muted-foreground mb-3">{t.altNote}</p>
           <ul className="space-y-1.5">
-            {ALT_APPS.map(a => (
-              <li key={a.name} className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            {ALT_APPS.map((a) => (
+              <li
+                key={a.name}
+                className="flex flex-wrap items-baseline gap-x-3 gap-y-1"
+              >
                 <a
                   href={a.url}
                   target="_blank"
@@ -132,7 +163,9 @@ export function InstallPage() {
                 >
                   {a.name}
                 </a>
-                <span className="text-muted-foreground text-xs">[ {a.platforms} ]</span>
+                <span className="text-muted-foreground text-xs">
+                  [ {a.platforms} ]
+                </span>
               </li>
             ))}
           </ul>
@@ -160,7 +193,9 @@ function Section({
         variant === "alt" ? "border-dashed border-border" : "border-border",
       )}
     >
-      <span className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-2">{tag}</span>
+      <span className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
+        {tag}
+      </span>
       <h2
         className={cn(
           "mb-3.5 text-sm font-bold tracking-wide",
@@ -174,13 +209,29 @@ function Section({
   );
 }
 
-function LangBar({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
+function LangBar({
+  lang,
+  onChange,
+}: {
+  lang: Lang;
+  onChange: (l: Lang) => void;
+}) {
   return (
-    <div className="flex items-center gap-2.5 border border-border bg-card px-3.5 py-2.5 mb-5" role="group" aria-label="language">
-      <span className="text-[11px] uppercase tracking-wider text-muted-foreground">// language</span>
+    <div
+      className="flex items-center gap-2.5 border border-border bg-card px-3.5 py-2.5 mb-5"
+      role="group"
+      aria-label="language"
+    >
+      <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+        // language
+      </span>
       <span className="text-muted-foreground">→</span>
-      <LangBtn active={lang === "ru"} onClick={() => onChange("ru")}>[ RU · Русский ]</LangBtn>
-      <LangBtn active={lang === "en"} onClick={() => onChange("en")}>[ EN · English ]</LangBtn>
+      <LangBtn active={lang === "ru"} onClick={() => onChange("ru")}>
+        [ RU · Русский ]
+      </LangBtn>
+      <LangBtn active={lang === "en"} onClick={() => onChange("en")}>
+        [ EN · English ]
+      </LangBtn>
     </div>
   );
 }
@@ -211,7 +262,13 @@ function LangBtn({
   );
 }
 
-function StoreLink({ href, children }: { href: string; children: React.ReactNode }) {
+function StoreLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
   return (
     <a
       href={href}
@@ -224,34 +281,37 @@ function StoreLink({ href, children }: { href: string; children: React.ReactNode
   );
 }
 
-const TEXT: Record<Lang, {
-  tagRecommended: string;
-  tagTest: string;
-  tagAlt: string;
-  recTitle: string;
-  testTitle: string;
-  altTitle: string;
-  altNote: string;
-  step1: string;
-  step2: string;
-  step3: string;
-  step4Pre: string;
-  step4Post: string;
-  step5Pre: string;
-  step5Bold: string;
-  step5Post: string;
-  testStep1Pre: string;
-  testStep1Post: string;
-  testStep2Pre: string;
-  testStep2Bold: string;
-  testStep2Post: string;
-  testStep3Pre: string;
-  testStep3Green: string;
-  testStep3Mid: string;
-  testStep3Dead: string;
-  testStep3Post: string;
-  testNote: string;
-}> = {
+const TEXT: Record<
+  Lang,
+  {
+    tagRecommended: string;
+    tagTest: string;
+    tagAlt: string;
+    recTitle: string;
+    testTitle: string;
+    altTitle: string;
+    altNote: string;
+    step1: string;
+    step2: string;
+    step3: string;
+    step4Pre: string;
+    step4Post: string;
+    step5Pre: string;
+    step5Bold: string;
+    step5Post: string;
+    testStep1Pre: string;
+    testStep1Post: string;
+    testStep2Pre: string;
+    testStep2Bold: string;
+    testStep2Post: string;
+    testStep3Pre: string;
+    testStep3Green: string;
+    testStep3Mid: string;
+    testStep3Dead: string;
+    testStep3Post: string;
+    testNote: string;
+  }
+> = {
   ru: {
     tagRecommended: "// ru · рекомендуется",
     tagTest: "// ru · проверка соединения",
@@ -259,7 +319,8 @@ const TEXT: Record<Lang, {
     recTitle: "установка v2RayTun",
     testTitle: "как проверить все конфиги",
     altTitle: "другие совместимые приложения",
-    altNote: "Подписка работает с любым клиентом VLESS/VMess. В каждом из них есть пункт «Добавить подписку / из буфера обмена» — скопируйте ссылку выше и вставьте её в приложение.",
+    altNote:
+      "Подписка работает с любым клиентом VLESS/VMess. В каждом из них есть пункт «Добавить подписку / из буфера обмена» — скопируйте ссылку выше и вставьте её в приложение.",
     step1: "Установите приложение:",
     step2: "Скопируйте ссылку:",
     step3: "Откройте приложение v2RayTun.",
@@ -278,7 +339,8 @@ const TEXT: Record<Lang, {
     testStep3Mid: " (например, 100 ms) — конфиг рабочий;",
     testStep3Dead: "«?ms»",
     testStep3Post: " — конфиг не работает.",
-    testNote: "Один и тот же VPN может работать из дома и не работать через мобильный интернет — рекомендуется регулярно проверять соединение.",
+    testNote:
+      "Один и тот же VPN может работать из дома и не работать через мобильный интернет — рекомендуется регулярно проверять соединение.",
   },
   en: {
     tagRecommended: "// en · recommended",
@@ -287,25 +349,27 @@ const TEXT: Record<Lang, {
     recTitle: "install v2RayTun",
     testTitle: "how to test all configs",
     altTitle: "other compatible apps",
-    altNote: "The subscription works with any VLESS/VMess client. Each app has an \"Add subscription / from clipboard\" option — copy the link above and paste it into the app.",
+    altNote:
+      'The subscription works with any VLESS/VMess client. Each app has an "Add subscription / from clipboard" option — copy the link above and paste it into the app.',
     step1: "Install the app:",
     step2: "Copy the link:",
     step3: "Open the v2RayTun app.",
     step4Pre: "Tap",
     step4Post: "in the top-right corner.",
     step5Pre: "Choose",
-    step5Bold: "\"Import config from Clipboard\"",
+    step5Bold: '"Import config from Clipboard"',
     step5Post: ".",
     testStep1Pre: "Tap",
     testStep1Post: "(vertical three dots) in the top-right corner.",
     testStep2Pre: "Choose",
-    testStep2Bold: "\"Real delay all configuration\"",
+    testStep2Bold: '"Real delay all configuration"',
     testStep2Post: ".",
     testStep3Pre: "Wait for the results:",
     testStep3Green: "a green number",
     testStep3Mid: " (e.g. 100 ms) means the config works;",
-    testStep3Dead: "\"?ms\"",
+    testStep3Dead: '"?ms"',
     testStep3Post: " means the config is not working.",
-    testNote: "The same VPN may work at home but fail on mobile data — we recommend checking the connection regularly.",
+    testNote:
+      "The same VPN may work at home but fail on mobile data — we recommend checking the connection regularly.",
   },
 };

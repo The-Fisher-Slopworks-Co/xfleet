@@ -9,10 +9,12 @@ import type { SseHub } from "../server/sseHub";
 
 export type ExtSubSyncStats = { inserted: number; deleted: number };
 export type ExtSubSyncResult =
-  | { ok: true; stats: ExtSubSyncStats }
-  | { ok: false; error: string };
+  { ok: true; stats: ExtSubSyncStats } | { ok: false; error: string };
 
-export type Fetcher = (url: string, headers: FetchHeaders) => Promise<FetchResult>;
+export type Fetcher = (
+  url: string,
+  headers: FetchHeaders,
+) => Promise<FetchResult>;
 
 export async function refreshSource(args: {
   sourceId: number;
@@ -47,7 +49,11 @@ export async function refreshSource(args: {
   return result;
 }
 
-async function doRefresh(sourceId: number, cipher: Cipher, fetcher: Fetcher): Promise<ExtSubSyncResult> {
+async function doRefresh(
+  sourceId: number,
+  cipher: Cipher,
+  fetcher: Fetcher,
+): Promise<ExtSubSyncResult> {
   const source = ExtSubSources.get(sourceId);
   if (!source) return { ok: false, error: "source not found" };
 
@@ -69,8 +75,11 @@ async function doRefresh(sourceId: number, cipher: Cipher, fetcher: Fetcher): Pr
 
 function sanitize(e: FetchError): string {
   switch (e.kind) {
-    case "connection_failed": return "connection failed";
-    case "unexpected_status": return `unexpected HTTP status ${e.status}`;
-    case "empty_body": return "empty response body";
+    case "connection_failed":
+      return "connection failed";
+    case "unexpected_status":
+      return `unexpected HTTP status ${e.status}`;
+    case "empty_body":
+      return "empty response body";
   }
 }

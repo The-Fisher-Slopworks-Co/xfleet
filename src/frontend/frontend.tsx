@@ -38,5 +38,5 @@ createRoot(document.getElementById("root")!).render(
         </Routes>
       </BrowserRouter>
     </ToastProvider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

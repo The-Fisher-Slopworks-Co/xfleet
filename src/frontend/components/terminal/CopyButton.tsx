@@ -17,7 +17,9 @@ export function CopyButton(props: { text: string; label?: string }) {
       }}
     >
       {copied ? <Check size={14} /> : <Copy size={14} />}
-      <span className="ml-1">{copied ? "copied" : (props.label ?? "copy")}</span>
+      <span className="ml-1">
+        {copied ? "copied" : (props.label ?? "copy")}
+      </span>
     </Button>
   );
 }

@@ -23,8 +23,14 @@ export type BuildResult =
 // config_transforms by matching the inbound's tag). v1 overrides the port only.
 export type LinkOverride = { port?: number };
 
-export function buildVlessLink(host: string, inbound: Inbound, client: Client, override?: LinkOverride): BuildResult {
-  if (inbound.protocol !== "vless") return { ok: false, error: "unsupported_protocol" };
+export function buildVlessLink(
+  host: string,
+  inbound: Inbound,
+  client: Client,
+  override?: LinkOverride,
+): BuildResult {
+  if (inbound.protocol !== "vless")
+    return { ok: false, error: "unsupported_protocol" };
   const stream = parseMaybeJson(inbound.streamSettings);
   if (stream === null) return { ok: false, error: "invalid_json" };
 
@@ -41,7 +47,13 @@ export function buildVlessLink(host: string, inbound: Inbound, client: Client, o
 
 function resolveAddress(fallback: string, listen: string | null): string {
   if (listen === null || listen === undefined) return fallback;
-  if (listen === "" || listen === "0.0.0.0" || listen === "::" || listen === "::0") return fallback;
+  if (
+    listen === "" ||
+    listen === "0.0.0.0" ||
+    listen === "::" ||
+    listen === "::0"
+  )
+    return fallback;
   return listen;
 }
 
@@ -56,7 +68,10 @@ function parseMaybeJson(v: unknown): Record<string, any> | null {
   }
 }
 
-function putTransport(p: Record<string, string>, stream: Record<string, any>): void {
+function putTransport(
+  p: Record<string, string>,
+  stream: Record<string, any>,
+): void {
   const network = (stream.network as string) || "tcp";
   p.type = network;
   switch (network) {
@@ -105,7 +120,10 @@ function addGrpc(p: Record<string, string>, grpc: Record<string, any>): void {
   if (grpc.multiMode) p.mode = "multi";
 }
 
-function addHttpUpgrade(p: Record<string, string>, hu: Record<string, any>): void {
+function addHttpUpgrade(
+  p: Record<string, string>,
+  hu: Record<string, any>,
+): void {
   maybePut(p, "path", hu.path);
   maybePut(p, "host", hu.host ?? hu.headers?.Host);
 }
@@ -122,7 +140,11 @@ function addKcp(p: Record<string, string>, kcp: Record<string, any>): void {
   maybePut(p, "seed", kcp.seed);
 }
 
-function putSecurity(p: Record<string, string>, stream: Record<string, any>, client: Client): void {
+function putSecurity(
+  p: Record<string, string>,
+  stream: Record<string, any>,
+  client: Client,
+): void {
   const security = (stream.security as string) || "none";
   const network = (stream.network as string) || "tcp";
   p.security = security;
@@ -154,7 +176,11 @@ function firstOf(v: unknown): string | undefined {
   return undefined;
 }
 
-function maybePut(p: Record<string, string>, key: string, value: unknown): void {
+function maybePut(
+  p: Record<string, string>,
+  key: string,
+  value: unknown,
+): void {
   if (value === null || value === undefined || value === "") return;
   p[key] = String(value);
 }
@@ -182,12 +208,15 @@ function pick<T>(arr: T[], key: string): T | "" {
 
 // RFC 3986 encoding: encodeURIComponent plus ! ' ( ) * ~
 function rfc3986(s: string): string {
-  return encodeURIComponent(s).replace(/[!'()*~]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
+  return encodeURIComponent(s).replace(
+    /[!'()*~]/g,
+    (c) => "%" + c.charCodeAt(0).toString(16).toUpperCase(),
+  );
 }
 
 function encodeParams(p: Record<string, string>): string {
   return Object.keys(p)
     .sort()
-    .map(k => `${rfc3986(k)}=${rfc3986(p[k]!)}`)
+    .map((k) => `${rfc3986(k)}=${rfc3986(p[k]!)}`)
     .join("&");
 }

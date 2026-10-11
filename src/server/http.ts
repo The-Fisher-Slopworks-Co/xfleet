@@ -9,7 +9,10 @@ export function json(body: unknown, init: ResponseInit = {}): Response {
 export function text(body: string, init: ResponseInit = {}): Response {
   return new Response(body, {
     ...init,
-    headers: { "content-type": "text/plain; charset=utf-8", ...(init.headers || {}) },
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      ...(init.headers || {}),
+    },
   });
 }
 
@@ -37,7 +40,11 @@ export async function readJson<T>(req: Request): Promise<T> {
   return (await req.json()) as T;
 }
 
-export function parseLimit(raw: string | null, def: number, max: number): number {
+export function parseLimit(
+  raw: string | null,
+  def: number,
+  max: number,
+): number {
   if (!raw) return def;
   const n = Math.floor(Number(raw));
   if (!Number.isFinite(n) || n <= 0) return def;

@@ -15,7 +15,9 @@ export function TypewriterTitle(props: { text: string; className?: string }) {
   }, [props.text]);
   const done = shown >= props.text.length;
   return (
-    <h1 className={"text-2xl font-bold text-primary " + (props.className ?? "")}>
+    <h1
+      className={"text-2xl font-bold text-primary " + (props.className ?? "")}
+    >
       <span>{props.text.slice(0, shown)}</span>
       <span className={done ? "caret" : ""} />
     </h1>

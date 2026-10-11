@@ -2,7 +2,13 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function UrlBlock({ url, className }: { url: string; className?: string }) {
+export function UrlBlock({
+  url,
+  className,
+}: {
+  url: string;
+  className?: string;
+}) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     await navigator.clipboard.writeText(url);

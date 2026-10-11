@@ -2,7 +2,11 @@
 import type { Server } from "bun";
 import type { Env } from "./env";
 
-const SENSITIVE_HEADERS = new Set(["cookie", "authorization", "proxy-authorization"]);
+const SENSITIVE_HEADERS = new Set([
+  "cookie",
+  "authorization",
+  "proxy-authorization",
+]);
 const IP_SHAPE = /^[0-9a-fA-F:.]{2,45}$/;
 const MAX_HEADER_VALUE_LEN = 1024;
 const MAX_HEADER_COUNT = 64;
@@ -16,7 +20,11 @@ function sanitizeIp(ip: string | null | undefined): string | null {
   return IP_SHAPE.test(ip) ? ip : null;
 }
 
-export function clientIp(req: Request, server: Server<unknown> | null, env: Env): string | null {
+export function clientIp(
+  req: Request,
+  server: Server<unknown> | null,
+  env: Env,
+): string | null {
   if (env.trustProxy) {
     const xff = req.headers.get("x-forwarded-for");
     if (xff) {
@@ -34,7 +42,8 @@ export function headersToRecord(req: Request): Record<string, string> {
   for (const [k, v] of req.headers.entries()) {
     if (SENSITIVE_HEADERS.has(k.toLowerCase())) continue;
     if (count++ >= MAX_HEADER_COUNT) break;
-    out[k] = v.length > MAX_HEADER_VALUE_LEN ? v.slice(0, MAX_HEADER_VALUE_LEN) : v;
+    out[k] =
+      v.length > MAX_HEADER_VALUE_LEN ? v.slice(0, MAX_HEADER_VALUE_LEN) : v;
   }
   return out;
 }

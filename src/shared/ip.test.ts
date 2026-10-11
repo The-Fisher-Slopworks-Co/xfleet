@@ -6,7 +6,8 @@ const canon = (s: string) => {
   const c = parseCidr(s);
   return c ? formatCidr(c) : null;
 };
-const contains = (net: string, ip: string) => cidrContains(parseCidr(net)!, parseIp(ip)!);
+const contains = (net: string, ip: string) =>
+  cidrContains(parseCidr(net)!, parseIp(ip)!);
 
 test("canonicalizes IPv4 hosts and ranges", () => {
   expect(canon("203.0.113.7")).toBe("203.0.113.7");
@@ -20,7 +21,9 @@ test("canonicalizes IPv4 hosts and ranges", () => {
 test("canonicalizes IPv6 per RFC 5952", () => {
   expect(canon("2001:DB8:0:0:0:0:0:1")).toBe("2001:db8::1");
   expect(canon("2001:db8::/32")).toBe("2001:db8::/32");
-  expect(canon("2001:0db8:0000:0000:0001:0000:0000:0001")).toBe("2001:db8::1:0:0:1");
+  expect(canon("2001:0db8:0000:0000:0001:0000:0000:0001")).toBe(
+    "2001:db8::1:0:0:1",
+  );
   expect(canon("2001:db8:0:1:1:1:1:1")).toBe("2001:db8:0:1:1:1:1:1");
   expect(canon("::")).toBe("::");
   expect(canon("::1/128")).toBe("::1");
@@ -30,9 +33,24 @@ test("canonicalizes IPv6 per RFC 5952", () => {
 
 test("rejects malformed input", () => {
   for (const bad of [
-    "", "1.2.3", "1.2.3.4.5", "1.2.3.999", "1.2.3.4/33", "1.2.3.4/", "1.2.3.4/-1", "a.b.c.d",
-    "1::2::3", "12345::", ":::", "1:2:3:4:5:6:7", "1:2:3:4:5:6:7:8:9", "1:2:3:4:5:6:7:8::",
-    "::/129", "fe80::1%eth0", "1.2.3.4::", " 1.2.3.4",
+    "",
+    "1.2.3",
+    "1.2.3.4.5",
+    "1.2.3.999",
+    "1.2.3.4/33",
+    "1.2.3.4/",
+    "1.2.3.4/-1",
+    "a.b.c.d",
+    "1::2::3",
+    "12345::",
+    ":::",
+    "1:2:3:4:5:6:7",
+    "1:2:3:4:5:6:7:8:9",
+    "1:2:3:4:5:6:7:8::",
+    "::/129",
+    "fe80::1%eth0",
+    "1.2.3.4::",
+    " 1.2.3.4",
   ]) {
     expect(parseCidr(bad)).toBeNull();
   }

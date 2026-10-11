@@ -3,7 +3,10 @@ import { useEffect, useState, useCallback } from "react";
 import { api } from "../lib/api";
 
 export function useJSON<T>(url: string | null): {
-  data: T | null; error: any; loading: boolean; refetch: () => Promise<void>;
+  data: T | null;
+  error: any;
+  loading: boolean;
+  refetch: () => Promise<void>;
 } {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<any>(null);
@@ -11,7 +14,8 @@ export function useJSON<T>(url: string | null): {
 
   const refetch = useCallback(async () => {
     if (!url) return;
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     try {
       const r = await api.get<T>(url);
       setData(r);
@@ -22,6 +26,8 @@ export function useJSON<T>(url: string | null): {
     }
   }, [url]);
 
-  useEffect(() => { void refetch(); }, [refetch]);
+  useEffect(() => {
+    void refetch();
+  }, [refetch]);
   return { data, error, loading, refetch };
 }
