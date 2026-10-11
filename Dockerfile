@@ -4,7 +4,10 @@
 FROM oven/bun:1-alpine AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+# --ignore-scripts because the root `prepare` runs `lefthook install`, which
+# needs git and a `.git`, neither of which exists here. No dependency of ours
+# relies on an install script.
+RUN bun install --frozen-lockfile --ignore-scripts
 
 # ---- builder: compile server + frontend into a single self-contained binary ----
 # `src/server/index.ts` imports `../frontend/index.html`, so Bun's bundler
