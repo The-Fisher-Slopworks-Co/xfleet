@@ -27,4 +27,4 @@ jobs:
   pr-preview:
     uses: The-Fisher-Slopworks-Co/.github/.github/workflows/pr-preview.yml@main
     with:
-      pr: ${{ inputs.pr }}
+      pr: ${{ fromJSON(inputs.pr) }}
