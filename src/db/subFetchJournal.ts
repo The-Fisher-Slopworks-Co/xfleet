@@ -85,8 +85,8 @@ export function pruneOlderThan(days: number): number {
 }
 
 export function list(opts: {
-  userId?: number;
-  beforeId?: number;
+  userId?: number | undefined;
+  beforeId?: number | undefined;
   limit: number;
 }): SubFetchJournalWithUser[] {
   const params: Bindings = { limit: Math.max(1, Math.min(1000, opts.limit)) };

@@ -18,7 +18,7 @@ export const api = {
   post: <T>(url: string, body?: unknown) =>
     request<T>(url, {
       method: "POST",
-      body: body ? JSON.stringify(body) : undefined,
+      body: body ? JSON.stringify(body) : null,
     }),
   patch: <T>(url: string, body: unknown) =>
     request<T>(url, { method: "PATCH", body: JSON.stringify(body) }),

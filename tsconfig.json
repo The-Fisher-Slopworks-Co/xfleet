@@ -20,14 +20,20 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    // An optional property means "may be absent", not "may be present and
+    // undefined" — so a maybe-undefined value can't be forwarded into one by
+    // accident. Option bags that genuinely accept both spell it `?: T |
+    // undefined`.
+    "exactOptionalPropertyTypes": true,
 
     "paths": {
       "@/*": ["./src/frontend/*"]
     },
 
     // Some stricter flags (disabled by default)
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
 

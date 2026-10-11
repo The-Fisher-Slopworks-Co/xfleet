@@ -25,7 +25,10 @@ export function create(attrs: { name: string }): ServerRow {
     )
     .get({ name: attrs.name })!;
 }
-export function update(id: number, attrs: { name?: string }): ServerRow | null {
+export function update(
+  id: number,
+  attrs: { name?: string | undefined },
+): ServerRow | null {
   return db()
     .query<ServerRow, { id: number; name: string | null }>(
       `
