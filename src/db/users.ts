@@ -42,7 +42,7 @@ export function create(attrs: { username: string; token: string }): UserRow {
 }
 export function update(
   id: number,
-  attrs: { username?: string; token?: string },
+  attrs: { username?: string | undefined; token?: string | undefined },
 ): UserRow | null {
   return db()
     .query<

@@ -62,9 +62,9 @@ export function create(attrs: {
   user_id: number;
   server_id: number;
   config: string;
-  tag?: string | null;
-  three_x_ui_server_id?: number | null;
-  external_email?: string | null;
+  tag?: string | null | undefined;
+  three_x_ui_server_id?: number | null | undefined;
+  external_email?: string | null | undefined;
 }): ConfigRow {
   return db()
     .query<ConfigRow, Bindings>(
@@ -84,14 +84,14 @@ export function create(attrs: {
 }
 export function update(
   id: number,
-  attrs: Partial<{
-    user_id: number;
-    server_id: number;
-    config: string;
-    tag: string | null;
-    three_x_ui_server_id: number | null;
-    external_email: string | null;
-  }>,
+  attrs: {
+    user_id?: number | undefined;
+    server_id?: number | undefined;
+    config?: string | undefined;
+    tag?: string | null | undefined;
+    three_x_ui_server_id?: number | null | undefined;
+    external_email?: string | null | undefined;
+  },
 ): ConfigRow | null {
   return db()
     .query<ConfigRow, Bindings>(

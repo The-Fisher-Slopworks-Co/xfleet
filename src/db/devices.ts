@@ -120,7 +120,7 @@ export function listForUser(user_id: number): DeviceRow[] {
 }
 
 export function listBlocked(opts: {
-  beforeId?: number;
+  beforeId?: number | undefined;
   limit: number;
 }): DeviceWithUser[] {
   const limit = Math.max(1, Math.min(1000, opts.limit));

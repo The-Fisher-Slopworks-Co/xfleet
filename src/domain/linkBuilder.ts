@@ -21,7 +21,7 @@ export type BuildResult =
 
 // A per-config override applied at link-build time (resolved from the panel's
 // config_transforms by matching the inbound's tag). v1 overrides the port only.
-export type LinkOverride = { port?: number };
+export type LinkOverride = { port?: number | undefined };
 
 export function buildVlessLink(
   host: string,
