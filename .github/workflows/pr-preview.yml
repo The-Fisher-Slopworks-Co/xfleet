@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 The Fisher Slopworks Co
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Builds the branch it is dispatched on and publishes it as the `:preview`
+# image. Started by `/deploy` (pr-deploy.yml) or by hand from the Actions tab.
+name: PR preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number
+        required: true
+        type: number
+
+concurrency:
+  group: pr-preview-${{ inputs.pr }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+
+jobs:
+  pr-preview:
+    uses: The-Fisher-Slopworks-Co/.github/.github/workflows/pr-preview.yml@main
+    with:
+      pr: ${{ inputs.pr }}
