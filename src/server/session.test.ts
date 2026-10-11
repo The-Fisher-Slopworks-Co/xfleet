@@ -15,18 +15,23 @@ test("issue/verify round-trip", () => {
 test("verify rejects tampered payload", () => {
   const { value } = issueSession("admin", SECRET);
   const parts = value.split(".");
-  const tampered = Buffer.from('{"u":"root","iat":1}').toString("base64url") + "." + parts[1];
+  const tampered =
+    Buffer.from('{"u":"root","iat":1}').toString("base64url") + "." + parts[1];
   expect(verifySession(tampered, SECRET)).toBeNull();
 });
 
 test("verify rejects bad mac", () => {
   const { value } = issueSession("admin", SECRET);
   const parts = value.split(".");
-  expect(verifySession(parts[0] + "." + "x".repeat(parts[1]!.length), SECRET)).toBeNull();
+  expect(
+    verifySession(parts[0] + "." + "x".repeat(parts[1]!.length), SECRET),
+  ).toBeNull();
 });
 
 test("verify rejects expired cookie", () => {
-  const { value } = issueSession("admin", SECRET, { iat: Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 8 });
+  const { value } = issueSession("admin", SECRET, {
+    iat: Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 8,
+  });
   expect(verifySession(value, SECRET)).toBeNull();
 });
 

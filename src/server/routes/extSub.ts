@@ -10,7 +10,14 @@ import { refreshSource } from "../../domain/extSubSync";
 import type { Cipher } from "../../domain/crypto";
 import type { SseHub } from "../sseHub";
 import { requireAuth } from "../middleware";
-import { badRequest, json, notFound, readJson, zodToErrors, noContent } from "../http";
+import {
+  badRequest,
+  json,
+  notFound,
+  readJson,
+  zodToErrors,
+  noContent,
+} from "../http";
 import type { Env } from "../env";
 
 export function extSubRoutes(env: Env, cipher: Cipher, hub: SseHub) {
@@ -22,14 +29,17 @@ export function extSubRoutes(env: Env, cipher: Cipher, hub: SseHub) {
   return {
     "/api/admin/ext-sub": {
       async GET(req: Request) {
-        const g = guard(req); if (g) return g;
+        const g = guard(req);
+        if (g) return g;
         const rows = ExtSubSources.list();
         return json(rows.map(({ url: _u, ...rest }) => rest));
       },
       async POST(req: Request) {
-        const g = guard(req); if (g) return g;
+        const g = guard(req);
+        if (g) return g;
         const parsed = extSubSourceCreateSchema.safeParse(await readJson(req));
-        if (!parsed.success) return badRequest(zodToErrors(parsed.error.issues));
+        if (!parsed.success)
+          return badRequest(zodToErrors(parsed.error.issues));
         try {
           const encrypted = await cipher.encrypt(parsed.data.url);
           const row = ExtSubSources.create({
@@ -51,22 +61,34 @@ export function extSubRoutes(env: Env, cipher: Cipher, hub: SseHub) {
     },
     "/api/admin/ext-sub/:id": {
       async PATCH(req: Request & { params: { id: string } }) {
-        const g = guard(req); if (g) return g;
+        const g = guard(req);
+        if (g) return g;
         const parsed = extSubSourceUpdateSchema.safeParse(await readJson(req));
-        if (!parsed.success) return badRequest(zodToErrors(parsed.error.issues));
+        if (!parsed.success)
+          return badRequest(zodToErrors(parsed.error.issues));
         const attrs: Partial<{
-          name: string; url: string; user_agent: string;
-          app_version: string; device_model: string; ver_os: string;
-          device_os: string; hwid: string;
+          name: string;
+          url: string;
+          user_agent: string;
+          app_version: string;
+          device_model: string;
+          ver_os: string;
+          device_os: string;
+          hwid: string;
         }> = {};
         if (parsed.data.name !== undefined) attrs.name = parsed.data.name;
-        if (parsed.data.user_agent !== undefined) attrs.user_agent = parsed.data.user_agent;
-        if (parsed.data.app_version !== undefined) attrs.app_version = parsed.data.app_version;
-        if (parsed.data.device_model !== undefined) attrs.device_model = parsed.data.device_model;
+        if (parsed.data.user_agent !== undefined)
+          attrs.user_agent = parsed.data.user_agent;
+        if (parsed.data.app_version !== undefined)
+          attrs.app_version = parsed.data.app_version;
+        if (parsed.data.device_model !== undefined)
+          attrs.device_model = parsed.data.device_model;
         if (parsed.data.ver_os !== undefined) attrs.ver_os = parsed.data.ver_os;
-        if (parsed.data.device_os !== undefined) attrs.device_os = parsed.data.device_os;
+        if (parsed.data.device_os !== undefined)
+          attrs.device_os = parsed.data.device_os;
         if (parsed.data.hwid !== undefined) attrs.hwid = parsed.data.hwid;
-        if (parsed.data.url !== undefined) attrs.url = await cipher.encrypt(parsed.data.url);
+        if (parsed.data.url !== undefined)
+          attrs.url = await cipher.encrypt(parsed.data.url);
         try {
           const row = ExtSubSources.update(Number(req.params.id), attrs);
           if (!row) return notFound();
@@ -77,7 +99,8 @@ export function extSubRoutes(env: Env, cipher: Cipher, hub: SseHub) {
         }
       },
       async DELETE(req: Request & { params: { id: string } }) {
-        const g = guard(req); if (g) return g;
+        const g = guard(req);
+        if (g) return g;
         const existing = ExtSubSources.get(Number(req.params.id));
         if (!existing) return notFound();
         ExtSubSources.remove(Number(req.params.id));
@@ -86,26 +109,36 @@ export function extSubRoutes(env: Env, cipher: Cipher, hub: SseHub) {
     },
     "/api/admin/ext-sub/:id/refresh": {
       async POST(req: Request & { params: { id: string } }) {
-        const g = guard(req); if (g) return g;
+        const g = guard(req);
+        if (g) return g;
         const id = Number(req.params.id);
         const source = ExtSubSources.get(id);
         if (!source) return notFound();
-        void refreshSource({ sourceId: id, hub, cipher })
-          .catch(err => console.error("[ext-sub]", err));
+        void refreshSource({ sourceId: id, hub, cipher }).catch((err) =>
+          console.error("[ext-sub]", err),
+        );
         return json({ accepted: true }, { status: 202 });
       },
     },
     "/api/admin/users/:id/ext-sub": {
       async GET(req: Request & { params: { id: string } }) {
-        const g = guard(req); if (g) return g;
-        const sourceIds = ExtSubAssignments.listSourceIdsForUser(Number(req.params.id));
+        const g = guard(req);
+        if (g) return g;
+        const sourceIds = ExtSubAssignments.listSourceIdsForUser(
+          Number(req.params.id),
+        );
         return json({ source_ids: sourceIds });
       },
       async PUT(req: Request & { params: { id: string } }) {
-        const g = guard(req); if (g) return g;
+        const g = guard(req);
+        if (g) return g;
         const parsed = extSubAssignSchema.safeParse(await readJson(req));
-        if (!parsed.success) return badRequest(zodToErrors(parsed.error.issues));
-        ExtSubAssignments.setForUser(Number(req.params.id), parsed.data.source_ids);
+        if (!parsed.success)
+          return badRequest(zodToErrors(parsed.error.issues));
+        ExtSubAssignments.setForUser(
+          Number(req.params.id),
+          parsed.data.source_ids,
+        );
         return json({ source_ids: parsed.data.source_ids });
       },
     },
@@ -115,7 +148,8 @@ export function extSubRoutes(env: Env, cipher: Cipher, hub: SseHub) {
 function uniqueViolation(e: any): Response {
   const msg = String(e?.message || e);
   if (/unique|duplicate/i.test(msg)) {
-    if (/name/i.test(msg)) return badRequest({ name: ["has already been taken"] });
+    if (/name/i.test(msg))
+      return badRequest({ name: ["has already been taken"] });
     return badRequest({ _: ["has already been taken"] });
   }
   throw e;

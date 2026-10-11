@@ -28,14 +28,23 @@ export function KatakanaRain() {
       for (let i = 0; i < cols; i++) {
         const ch = CHARS[Math.floor(Math.random() * CHARS.length)]!;
         ctx.fillText(ch, i * fontSize, drops[i]! * fontSize);
-        if (drops[i]! * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+        if (drops[i]! * fontSize > canvas.height && Math.random() > 0.975)
+          drops[i] = 0;
         drops[i]!++;
       }
       raf = requestAnimationFrame(render);
     };
     render();
     window.addEventListener("resize", resize);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+    };
   }, []);
-  return <canvas ref={ref} className="fixed inset-0 w-full h-full z-0 opacity-40 pointer-events-none" />;
+  return (
+    <canvas
+      ref={ref}
+      className="fixed inset-0 w-full h-full z-0 opacity-40 pointer-events-none"
+    />
+  );
 }

@@ -1,6 +1,10 @@
 // src/server/middleware.ts
 import type { Env } from "./env";
-import { readSessionCookie, verifySession, type SessionPayload } from "./session";
+import {
+  readSessionCookie,
+  verifySession,
+  type SessionPayload,
+} from "./session";
 import { unauthorized } from "./http";
 
 export function requireAuth(req: Request, env: Env): SessionPayload | Response {

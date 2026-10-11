@@ -40,12 +40,12 @@
   --primary: oklch(0.88 0.22 155);
   --primary-foreground: oklch(0.12 0.02 155);
   --secondary: oklch(0.22 0.04 155);
-  --secondary-foreground: oklch(0.80 0.18 155);
+  --secondary-foreground: oklch(0.8 0.18 155);
   --muted: oklch(0.18 0.03 155);
-  --muted-foreground: oklch(0.55 0.10 155);
+  --muted-foreground: oklch(0.55 0.1 155);
   --accent: oklch(0.22 0.04 155);
   --accent-foreground: oklch(0.88 0.22 155);
-  --destructive: oklch(0.70 0.25 25);
+  --destructive: oklch(0.7 0.25 25);
   --border: oklch(0.36 0.08 155 / 0.35);
   --input: oklch(0.22 0.04 155);
   --ring: oklch(0.88 0.22 155);
@@ -55,21 +55,30 @@
   * {
     @apply border-border outline-ring/50;
   }
-  html, body, #root {
+  html,
+  body,
+  #root {
     height: 100%;
   }
   body {
     @apply bg-background text-foreground;
     font-family: "JetBrains Mono", ui-monospace, monospace;
-    font-feature-settings: "calt" 1, "liga" 1;
+    font-feature-settings:
+      "calt" 1,
+      "liga" 1;
     caret-color: var(--primary);
   }
   ::selection {
     background: color-mix(in oklch, var(--primary) 35%, transparent);
     color: var(--background);
   }
-  input:focus, textarea:focus, select:focus, button:focus {
-    box-shadow: 0 0 0 1px var(--primary), 0 0 12px -2px var(--primary);
+  input:focus,
+  textarea:focus,
+  select:focus,
+  button:focus {
+    box-shadow:
+      0 0 0 1px var(--primary),
+      0 0 12px -2px var(--primary);
   }
 }
 
@@ -89,8 +98,14 @@ body::after {
 }
 
 @keyframes blink-caret {
-  0%, 50% { opacity: 1; }
-  50.01%, 100% { opacity: 0; }
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
 }
 .caret::after {
   content: "▌";
@@ -99,5 +114,7 @@ body::after {
 }
 
 @media (prefers-reduced-motion) {
-  .caret::after { animation: none; }
+  .caret::after {
+    animation: none;
+  }
 }

@@ -29,19 +29,32 @@ export type ExtSubSourceAttrs = {
 };
 
 export function list(): ExtSubSourceRow[] {
-  return db().query<ExtSubSourceRow, []>("SELECT * FROM ext_sub_sources ORDER BY name ASC").all();
+  return db()
+    .query<ExtSubSourceRow, []>(
+      "SELECT * FROM ext_sub_sources ORDER BY name ASC",
+    )
+    .all();
 }
 export function get(id: number): ExtSubSourceRow | null {
-  return db().query<ExtSubSourceRow, { id: number }>("SELECT * FROM ext_sub_sources WHERE id = $id").get({ id });
+  return db()
+    .query<ExtSubSourceRow, { id: number }>(
+      "SELECT * FROM ext_sub_sources WHERE id = $id",
+    )
+    .get({ id });
 }
 export function listByIds(ids: number[]): ExtSubSourceRow[] {
   if (ids.length === 0) return [];
-  return db().query<ExtSubSourceRow, { ids: string }>(`
-    SELECT * FROM ext_sub_sources WHERE id IN (SELECT value FROM json_each($ids))`)
+  return db()
+    .query<ExtSubSourceRow, { ids: string }>(
+      `
+    SELECT * FROM ext_sub_sources WHERE id IN (SELECT value FROM json_each($ids))`,
+    )
     .all({ ids: JSON.stringify(ids) });
 }
 export function create(attrs: ExtSubSourceAttrs): ExtSubSourceRow {
-  return db().query<ExtSubSourceRow, Bindings>(`
+  return db()
+    .query<ExtSubSourceRow, Bindings>(
+      `
     INSERT INTO ext_sub_sources (
       name, url, user_agent, app_version, device_model, ver_os, device_os, hwid
     )
@@ -49,19 +62,26 @@ export function create(attrs: ExtSubSourceAttrs): ExtSubSourceRow {
       $name, $url, $user_agent, $app_version,
       $device_model, $ver_os, $device_os, $hwid
     )
-    RETURNING *`).get({
-    name: attrs.name,
-    url: attrs.url,
-    user_agent: attrs.user_agent,
-    app_version: attrs.app_version,
-    device_model: attrs.device_model,
-    ver_os: attrs.ver_os,
-    device_os: attrs.device_os,
-    hwid: attrs.hwid,
-  })!;
+    RETURNING *`,
+    )
+    .get({
+      name: attrs.name,
+      url: attrs.url,
+      user_agent: attrs.user_agent,
+      app_version: attrs.app_version,
+      device_model: attrs.device_model,
+      ver_os: attrs.ver_os,
+      device_os: attrs.device_os,
+      hwid: attrs.hwid,
+    })!;
 }
-export function update(id: number, attrs: Partial<ExtSubSourceAttrs>): ExtSubSourceRow | null {
-  return db().query<ExtSubSourceRow, Bindings>(`
+export function update(
+  id: number,
+  attrs: Partial<ExtSubSourceAttrs>,
+): ExtSubSourceRow | null {
+  return db()
+    .query<ExtSubSourceRow, Bindings>(
+      `
     UPDATE ext_sub_sources SET
       name         = COALESCE($name, name),
       url          = COALESCE($url, url),
@@ -73,24 +93,32 @@ export function update(id: number, attrs: Partial<ExtSubSourceAttrs>): ExtSubSou
       hwid         = COALESCE($hwid, hwid),
       updated_at   = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
     WHERE id = $id
-    RETURNING *`).get({
-    id,
-    name: attrs.name ?? null,
-    url: attrs.url ?? null,
-    user_agent: attrs.user_agent ?? null,
-    app_version: attrs.app_version ?? null,
-    device_model: attrs.device_model ?? null,
-    ver_os: attrs.ver_os ?? null,
-    device_os: attrs.device_os ?? null,
-    hwid: attrs.hwid ?? null,
-  });
+    RETURNING *`,
+    )
+    .get({
+      id,
+      name: attrs.name ?? null,
+      url: attrs.url ?? null,
+      user_agent: attrs.user_agent ?? null,
+      app_version: attrs.app_version ?? null,
+      device_model: attrs.device_model ?? null,
+      ver_os: attrs.ver_os ?? null,
+      device_os: attrs.device_os ?? null,
+      hwid: attrs.hwid ?? null,
+    });
 }
 export function remove(id: number): void {
-  db().query<never, { id: number }>("DELETE FROM ext_sub_sources WHERE id = $id").run({ id });
+  db()
+    .query<never, { id: number }>("DELETE FROM ext_sub_sources WHERE id = $id")
+    .run({ id });
 }
 export function updateFetchStatus(id: number, at: Date, status: string): void {
-  db().query<never, { id: number; at: string; status: string }>(`
+  db()
+    .query<never, { id: number; at: string; status: string }>(
+      `
     UPDATE ext_sub_sources
     SET last_fetched_at = $at, last_fetch_status = $status, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-    WHERE id = $id`).run({ id, at: at.toISOString(), status });
+    WHERE id = $id`,
+    )
+    .run({ id, at: at.toISOString(), status });
 }

@@ -34,11 +34,16 @@ test("SUB_JOURNAL_RETENTION_DAYS defaults to 90", () => {
 });
 
 test("SUB_JOURNAL_RETENTION_DAYS accepts positive integer", () => {
-  expect(loadEnv({ ...good, SUB_JOURNAL_RETENTION_DAYS: "30" }).subJournalRetentionDays).toBe(30);
+  expect(
+    loadEnv({ ...good, SUB_JOURNAL_RETENTION_DAYS: "30" })
+      .subJournalRetentionDays,
+  ).toBe(30);
 });
 
 test("SUB_JOURNAL_RETENTION_DAYS rejects 0 (disallows infinite retention)", () => {
-  expect(() => loadEnv({ ...good, SUB_JOURNAL_RETENTION_DAYS: "0" })).toThrow(/SUB_JOURNAL_RETENTION_DAYS/);
+  expect(() => loadEnv({ ...good, SUB_JOURNAL_RETENTION_DAYS: "0" })).toThrow(
+    /SUB_JOURNAL_RETENTION_DAYS/,
+  );
 });
 
 test("rejects missing required var", () => {
@@ -47,7 +52,9 @@ test("rejects missing required var", () => {
 });
 
 test("rejects short SESSION_SECRET", () => {
-  expect(() => loadEnv({ ...good, SESSION_SECRET: "short" })).toThrow(/SESSION_SECRET/);
+  expect(() => loadEnv({ ...good, SESSION_SECRET: "short" })).toThrow(
+    /SESSION_SECRET/,
+  );
 });
 
 test("rejects malformed PORT", () => {
@@ -55,5 +62,7 @@ test("rejects malformed PORT", () => {
 });
 
 test("rejects malformed MASTER_KEY", () => {
-  expect(() => loadEnv({ ...good, MASTER_KEY: "not base64!!" })).toThrow(/MASTER_KEY/);
+  expect(() => loadEnv({ ...good, MASTER_KEY: "not base64!!" })).toThrow(
+    /MASTER_KEY/,
+  );
 });

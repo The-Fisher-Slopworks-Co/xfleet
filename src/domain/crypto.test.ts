@@ -46,5 +46,7 @@ test("decrypt rejects wrong version prefix", async () => {
 
 test("makeCipher rejects malformed MASTER_KEY", async () => {
   await expect(makeCipher("not-base64!!")).rejects.toThrow();
-  await expect(makeCipher(Buffer.alloc(16).toString("base64"))).rejects.toThrow();
+  await expect(
+    makeCipher(Buffer.alloc(16).toString("base64")),
+  ).rejects.toThrow();
 });

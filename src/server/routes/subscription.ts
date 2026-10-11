@@ -8,7 +8,14 @@ import type { DeviceRow } from "../../db/devices";
 import { resolveDevice } from "../../domain/deviceResolver";
 import { checkBlocked } from "../../domain/blockCheck";
 import { json, text } from "../http";
-import { clientIp, headersToRecord, truncate, MAX_TOKEN_LEN, MAX_USER_AGENT_LEN, MAX_HWID_LEN } from "../clientIp";
+import {
+  clientIp,
+  headersToRecord,
+  truncate,
+  MAX_TOKEN_LEN,
+  MAX_USER_AGENT_LEN,
+  MAX_HWID_LEN,
+} from "../clientIp";
 import type { Env } from "../env";
 import type { SseHub } from "../sseHub";
 
@@ -19,12 +26,18 @@ function isBrowser(userAgent: string | null): boolean {
 export function subscriptionRoutes(env: Env, hub: SseHub | null = null) {
   return {
     "/sub/:token": {
-      async GET(req: Request & { params: { token: string } }, server: Server<unknown> | null = null) {
+      async GET(
+        req: Request & { params: { token: string } },
+        server: Server<unknown> | null = null,
+      ) {
         const token = req.params.token;
         const user = Users.getByToken(token);
         const ip = clientIp(req, server, env);
         const headers = headersToRecord(req);
-        const userAgent = truncate(req.headers.get("user-agent"), MAX_USER_AGENT_LEN);
+        const userAgent = truncate(
+          req.headers.get("user-agent"),
+          MAX_USER_AGENT_LEN,
+        );
         const hwid = truncate(req.headers.get("x-hwid"), MAX_HWID_LEN);
         const sudo = new URL(req.url).searchParams.get("sudo") === "1";
 
@@ -57,7 +70,10 @@ export function subscriptionRoutes(env: Env, hub: SseHub | null = null) {
 
         if (!user) {
           journal(404);
-          return new Response("", { status: 404, headers: { "content-type": "text/plain" } });
+          return new Response("", {
+            status: 404,
+            headers: { "content-type": "text/plain" },
+          });
         }
 
         // Device tracking is best-effort: a failure must not break config delivery.
@@ -72,7 +88,10 @@ export function subscriptionRoutes(env: Env, hub: SseHub | null = null) {
           blockedBy = block.by;
           journal(404);
           // Stealth denial: indistinguishable from an unknown token.
-          return new Response("", { status: 404, headers: { "content-type": "text/plain" } });
+          return new Response("", {
+            status: 404,
+            headers: { "content-type": "text/plain" },
+          });
         }
 
         if (isBrowser(userAgent) && !sudo) {
@@ -84,17 +103,21 @@ export function subscriptionRoutes(env: Env, hub: SseHub | null = null) {
         }
         const configs = Configs.listForUser(user.id);
         const extLinks = ExtSubLinks.listForUser(user.id);
-        const configLines = configs.map(c => {
+        const configLines = configs.map((c) => {
           const base = `${c.config}#${c.server.name}`;
           return c.tag ? `${base}%20${encodeURIComponent(c.tag)}` : base;
         });
-        const extLines = extLinks.map(l => {
-          const fragment = l.label ? `${l.source_name} · ${l.label}` : l.source_name;
+        const extLines = extLinks.map((l) => {
+          const fragment = l.label
+            ? `${l.source_name} · ${l.label}`
+            : l.source_name;
           return `${l.uri}#${encodeURIComponent(fragment)}`;
         });
         const body = [...configLines, ...extLines].join("\n");
         const title = `${env.profileTitle} - ${user.username}`;
-        const resHeaders = { "profile-title": `base64:${Buffer.from(title).toString("base64")}` };
+        const resHeaders = {
+          "profile-title": `base64:${Buffer.from(title).toString("base64")}`,
+        };
         journal(200);
         return text(body, { headers: resHeaders });
       },

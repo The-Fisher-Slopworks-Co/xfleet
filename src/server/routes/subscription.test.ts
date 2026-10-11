@@ -23,15 +23,24 @@ beforeEach(() => {
 });
 
 const env = {
-  profileTitle: "VPN", adminUsername: "", adminPasswordHash: "", sessionSecret: "",
-  masterKey: "", databasePath: "", port: 0, publicBaseUrl: "https://vpn.example.com",
-  trustProxy: false, subJournalRetentionDays: 90,
+  profileTitle: "VPN",
+  adminUsername: "",
+  adminPasswordHash: "",
+  sessionSecret: "",
+  masterKey: "",
+  databasePath: "",
+  port: 0,
+  publicBaseUrl: "https://vpn.example.com",
+  trustProxy: false,
+  subJournalRetentionDays: 90,
 } satisfies Env;
 
 test("unknown token returns 404", async () => {
   const routes = subscriptionRoutes(env);
   const res = await routes["/sub/:token"].GET(
-    Object.assign(new Request("http://x/sub/nope"), { params: { token: "nope" } }),
+    Object.assign(new Request("http://x/sub/nope"), {
+      params: { token: "nope" },
+    }),
   );
   expect(res.status).toBe(404);
 });
@@ -39,28 +48,54 @@ test("unknown token returns 404", async () => {
 test("returns concatenated configs with profile-title header", async () => {
   const u = Users.create({ username: "alice", token: "abc" });
   const s = Servers.create({ name: "eu" });
-  Configs.create({ user_id: u.id, server_id: s.id, config: "vless://x", tag: "prem" });
-  Configs.create({ user_id: u.id, server_id: s.id, config: "vless://y", tag: null });
+  Configs.create({
+    user_id: u.id,
+    server_id: s.id,
+    config: "vless://x",
+    tag: "prem",
+  });
+  Configs.create({
+    user_id: u.id,
+    server_id: s.id,
+    config: "vless://y",
+    tag: null,
+  });
   const routes = subscriptionRoutes(env);
   const res = await routes["/sub/:token"].GET(
-    Object.assign(new Request("http://x/sub/abc"), { params: { token: "abc" } }),
+    Object.assign(new Request("http://x/sub/abc"), {
+      params: { token: "abc" },
+    }),
   );
   expect(res.status).toBe(200);
   const body = await res.text();
   expect(body).toBe("vless://x#eu%20prem\nvless://y#eu");
   const title = res.headers.get("profile-title")!;
   expect(title.startsWith("base64:")).toBe(true);
-  const decoded = Buffer.from(title.slice("base64:".length), "base64").toString();
+  const decoded = Buffer.from(
+    title.slice("base64:".length),
+    "base64",
+  ).toString();
   expect(decoded).toBe("VPN - alice");
 });
 
 test("appends ext-sub lines with source-prefixed labels for assigned users", async () => {
   const u = Users.create({ username: "alice", token: "abc" });
   const s = Servers.create({ name: "eu" });
-  Configs.create({ user_id: u.id, server_id: s.id, config: "vless://x", tag: null });
+  Configs.create({
+    user_id: u.id,
+    server_id: s.id,
+    config: "vless://x",
+    tag: null,
+  });
   const src = ExtSubSources.create({
-    name: "provX", url: "v1:enc",
-    user_agent: "ua", app_version: "", device_model: "", ver_os: "", device_os: "", hwid: "",
+    name: "provX",
+    url: "v1:enc",
+    user_agent: "ua",
+    app_version: "",
+    device_model: "",
+    ver_os: "",
+    device_os: "",
+    hwid: "",
   });
   ExtSubLinks.replaceForSource(src.id, [
     { uri: "vless://ext1", label: "HK-01" },
@@ -70,7 +105,9 @@ test("appends ext-sub lines with source-prefixed labels for assigned users", asy
 
   const routes = subscriptionRoutes(env);
   const res = await routes["/sub/:token"].GET(
-    Object.assign(new Request("http://x/sub/abc"), { params: { token: "abc" } }),
+    Object.assign(new Request("http://x/sub/abc"), {
+      params: { token: "abc" },
+    }),
   );
   const body = await res.text();
   const lines = body.split("\n");
@@ -85,7 +122,10 @@ test("browser user-agent redirects to the SPA install page", async () => {
   const res = await routes["/sub/:token"].GET(
     Object.assign(
       new Request("http://x/sub/abc", {
-        headers: { "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15" },
+        headers: {
+          "user-agent":
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+        },
       }),
       { params: { token: "abc" } },
     ),
@@ -98,17 +138,24 @@ test("public sub api returns username and canonical URL", async () => {
   Users.create({ username: "alice", token: "abc" });
   const routes = subscriptionRoutes(env);
   const res = await routes["/api/public/sub/:token"].GET(
-    Object.assign(new Request("http://x/api/public/sub/abc"), { params: { token: "abc" } }),
+    Object.assign(new Request("http://x/api/public/sub/abc"), {
+      params: { token: "abc" },
+    }),
   );
   expect(res.status).toBe(200);
   const body = await res.json();
-  expect(body).toEqual({ username: "alice", subUrl: "https://vpn.example.com/sub/abc" });
+  expect(body).toEqual({
+    username: "alice",
+    subUrl: "https://vpn.example.com/sub/abc",
+  });
 });
 
 test("public sub api returns 404 for unknown token", async () => {
   const routes = subscriptionRoutes(env);
   const res = await routes["/api/public/sub/:token"].GET(
-    Object.assign(new Request("http://x/api/public/sub/nope"), { params: { token: "nope" } }),
+    Object.assign(new Request("http://x/api/public/sub/nope"), {
+      params: { token: "nope" },
+    }),
   );
   expect(res.status).toBe(404);
 });
@@ -116,11 +163,18 @@ test("public sub api returns 404 for unknown token", async () => {
 test("non-browser user-agent returns plain-text subscription", async () => {
   const u = Users.create({ username: "alice", token: "abc" });
   const s = Servers.create({ name: "eu" });
-  Configs.create({ user_id: u.id, server_id: s.id, config: "vless://x", tag: null });
+  Configs.create({
+    user_id: u.id,
+    server_id: s.id,
+    config: "vless://x",
+    tag: null,
+  });
   const routes = subscriptionRoutes(env);
   const res = await routes["/sub/:token"].GET(
     Object.assign(
-      new Request("http://x/sub/abc", { headers: { "user-agent": "v2raytun/android" } }),
+      new Request("http://x/sub/abc", {
+        headers: { "user-agent": "v2raytun/android" },
+      }),
       { params: { token: "abc" } },
     ),
   );
@@ -131,10 +185,17 @@ test("non-browser user-agent returns plain-text subscription", async () => {
 test("missing user-agent returns plain-text subscription", async () => {
   const u = Users.create({ username: "alice", token: "abc" });
   const s = Servers.create({ name: "eu" });
-  Configs.create({ user_id: u.id, server_id: s.id, config: "vless://x", tag: null });
+  Configs.create({
+    user_id: u.id,
+    server_id: s.id,
+    config: "vless://x",
+    tag: null,
+  });
   const routes = subscriptionRoutes(env);
   const res = await routes["/sub/:token"].GET(
-    Object.assign(new Request("http://x/sub/abc"), { params: { token: "abc" } }),
+    Object.assign(new Request("http://x/sub/abc"), {
+      params: { token: "abc" },
+    }),
   );
   expect(res.headers.get("content-type")).toContain("text/plain");
   expect(await res.text()).toBe("vless://x#eu");
@@ -144,7 +205,9 @@ test("browser user-agent on unknown token still returns 404", async () => {
   const routes = subscriptionRoutes(env);
   const res = await routes["/sub/:token"].GET(
     Object.assign(
-      new Request("http://x/sub/nope", { headers: { "user-agent": "Mozilla/5.0" } }),
+      new Request("http://x/sub/nope", {
+        headers: { "user-agent": "Mozilla/5.0" },
+      }),
       { params: { token: "nope" } },
     ),
   );
@@ -157,7 +220,11 @@ test("records a journal row on successful fetch with headers and UA", async () =
   await routes["/sub/:token"].GET(
     Object.assign(
       new Request("http://x/sub/abc", {
-        headers: { "user-agent": "v2raytun/ios 1.2", "x-device-model": "iPhone15,2", cookie: "secret=1" },
+        headers: {
+          "user-agent": "v2raytun/ios 1.2",
+          "x-device-model": "iPhone15,2",
+          cookie: "secret=1",
+        },
       }),
       { params: { token: "abc" } },
     ),
@@ -177,7 +244,9 @@ test("records a journal row on successful fetch with headers and UA", async () =
 test("records a 404 journal row with null user_id on unknown token", async () => {
   const routes = subscriptionRoutes(env);
   await routes["/sub/:token"].GET(
-    Object.assign(new Request("http://x/sub/nope"), { params: { token: "nope" } }),
+    Object.assign(new Request("http://x/sub/nope"), {
+      params: { token: "nope" },
+    }),
   );
   const entries = SubFetchJournal.list({ limit: 10 });
   expect(entries).toHaveLength(1);
@@ -191,7 +260,9 @@ test("records a 302 journal row on browser redirect", async () => {
   const routes = subscriptionRoutes(env);
   await routes["/sub/:token"].GET(
     Object.assign(
-      new Request("http://x/sub/abc", { headers: { "user-agent": "Mozilla/5.0" } }),
+      new Request("http://x/sub/abc", {
+        headers: { "user-agent": "Mozilla/5.0" },
+      }),
       { params: { token: "abc" } },
     ),
   );
@@ -235,14 +306,18 @@ test("broadcasts a sub_fetch event with the inserted row after journaling", asyn
   const u = Users.create({ username: "alice", token: "abc" });
   const events: SyncEvent[] = [];
   const fakeHub: SseHub = {
-    broadcast: e => { events.push(e); },
+    broadcast: (e) => {
+      events.push(e);
+    },
     subscribe: () => ({ readable: new ReadableStream(), close: () => {} }),
     subscriberCount: () => 0,
   };
   const routes = subscriptionRoutes(env, fakeHub);
   await routes["/sub/:token"].GET(
     Object.assign(
-      new Request("http://x/sub/abc", { headers: { "user-agent": "v2raytun" } }),
+      new Request("http://x/sub/abc", {
+        headers: { "user-agent": "v2raytun" },
+      }),
       { params: { token: "abc" } },
     ),
   );
@@ -263,7 +338,11 @@ test("x-hwid fetch registers a hwid device and links the journal row", async () 
   const res = await routes["/sub/:token"].GET(
     Object.assign(
       new Request("http://x/sub/abc", {
-        headers: { "user-agent": "happ/1.0", "x-hwid": "HW1", "x-forwarded-for": "203.0.113.7" },
+        headers: {
+          "user-agent": "happ/1.0",
+          "x-hwid": "HW1",
+          "x-forwarded-for": "203.0.113.7",
+        },
       }),
       { params: { token: "abc" } },
     ),
@@ -281,12 +360,15 @@ test("x-hwid fetch registers a hwid device and links the journal row", async () 
 test("repeat hwid fetches reuse the same device", async () => {
   const u = Users.create({ username: "alice", token: "abc" });
   const routes = subscriptionRoutes(env);
-  const fetchOnce = () => routes["/sub/:token"].GET(
-    Object.assign(
-      new Request("http://x/sub/abc", { headers: { "user-agent": "happ/1.0", "x-hwid": "HW1" } }),
-      { params: { token: "abc" } },
-    ),
-  );
+  const fetchOnce = () =>
+    routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", {
+          headers: { "user-agent": "happ/1.0", "x-hwid": "HW1" },
+        }),
+        { params: { token: "abc" } },
+      ),
+    );
   await fetchOnce();
   await fetchOnce();
   expect(Devices.listForUser(u.id)).toHaveLength(1);
@@ -298,7 +380,10 @@ test("fetch without hwid registers a fallback device from ua+ip", async () => {
   await routes["/sub/:token"].GET(
     Object.assign(
       new Request("http://x/sub/abc", {
-        headers: { "user-agent": "v2raytun/android", "x-forwarded-for": "203.0.113.7" },
+        headers: {
+          "user-agent": "v2raytun/android",
+          "x-forwarded-for": "203.0.113.7",
+        },
       }),
       { params: { token: "abc" } },
     ),
@@ -315,7 +400,9 @@ test("fetch without hwid and without ip does not register a device", async () =>
   const routes = subscriptionRoutes(env);
   await routes["/sub/:token"].GET(
     Object.assign(
-      new Request("http://x/sub/abc", { headers: { "user-agent": "v2raytun/android" } }),
+      new Request("http://x/sub/abc", {
+        headers: { "user-agent": "v2raytun/android" },
+      }),
       { params: { token: "abc" } },
     ),
   );
@@ -325,16 +412,24 @@ test("fetch without hwid and without ip does not register a device", async () =>
 test("blocked device gets a stealth 404 and the journal records blocked_by=device", async () => {
   const u = Users.create({ username: "alice", token: "abc" });
   const s = Servers.create({ name: "eu" });
-  Configs.create({ user_id: u.id, server_id: s.id, config: "vless://x", tag: null });
+  Configs.create({
+    user_id: u.id,
+    server_id: s.id,
+    config: "vless://x",
+    tag: null,
+  });
   const routes = subscriptionRoutes(env);
-  const fetchOnce = () => routes["/sub/:token"].GET(
-    Object.assign(
-      new Request("http://x/sub/abc", { headers: { "user-agent": "happ/1.0", "x-hwid": "HW1" } }),
-      { params: { token: "abc" } },
-    ),
-  );
+  const fetchOnce = () =>
+    routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", {
+          headers: { "user-agent": "happ/1.0", "x-hwid": "HW1" },
+        }),
+        { params: { token: "abc" } },
+      ),
+    );
   await fetchOnce();
-  const device = (Devices.listForUser(u.id))[0]!;
+  const device = Devices.listForUser(u.id)[0]!;
   Devices.setBlocked(device.id, true);
 
   const res = await fetchOnce();
@@ -349,16 +444,20 @@ test("blocked device gets a stealth 404 and the journal records blocked_by=devic
 test("blocked device with a browser UA gets 404, not the install redirect", async () => {
   const u = Users.create({ username: "alice", token: "abc" });
   const routes = subscriptionRoutes({ ...env, trustProxy: true });
-  const fetchOnce = () => routes["/sub/:token"].GET(
-    Object.assign(
-      new Request("http://x/sub/abc", {
-        headers: { "user-agent": "Mozilla/5.0", "x-forwarded-for": "203.0.113.7" },
-      }),
-      { params: { token: "abc" } },
-    ),
-  );
+  const fetchOnce = () =>
+    routes["/sub/:token"].GET(
+      Object.assign(
+        new Request("http://x/sub/abc", {
+          headers: {
+            "user-agent": "Mozilla/5.0",
+            "x-forwarded-for": "203.0.113.7",
+          },
+        }),
+        { params: { token: "abc" } },
+      ),
+    );
   await fetchOnce();
-  const device = (Devices.listForUser(u.id))[0]!;
+  const device = Devices.listForUser(u.id)[0]!;
   Devices.setBlocked(device.id, true);
   const res = await fetchOnce();
   expect(res.status).toBe(404);
@@ -371,7 +470,11 @@ test("blocked IP gets a stealth 404 with blocked_by=ip; the device is still trac
   const res = await routes["/sub/:token"].GET(
     Object.assign(
       new Request("http://x/sub/abc", {
-        headers: { "user-agent": "happ/1.0", "x-hwid": "HW1", "x-forwarded-for": "203.0.113.77" },
+        headers: {
+          "user-agent": "happ/1.0",
+          "x-hwid": "HW1",
+          "x-forwarded-for": "203.0.113.77",
+        },
       }),
       { params: { token: "abc" } },
     ),
@@ -385,13 +488,21 @@ test("blocked IP gets a stealth 404 with blocked_by=ip; the device is still trac
 test("IP outside a blocked CIDR is served normally", async () => {
   const u = Users.create({ username: "alice", token: "abc" });
   const s = Servers.create({ name: "eu" });
-  Configs.create({ user_id: u.id, server_id: s.id, config: "vless://x", tag: null });
+  Configs.create({
+    user_id: u.id,
+    server_id: s.id,
+    config: "vless://x",
+    tag: null,
+  });
   IpBlocklist.add({ cidr: "203.0.113.0/24", note: null });
   const routes = subscriptionRoutes({ ...env, trustProxy: true });
   const res = await routes["/sub/:token"].GET(
     Object.assign(
       new Request("http://x/sub/abc", {
-        headers: { "user-agent": "happ/1.0", "x-forwarded-for": "198.51.100.7" },
+        headers: {
+          "user-agent": "happ/1.0",
+          "x-forwarded-for": "198.51.100.7",
+        },
       }),
       { params: { token: "abc" } },
     ),
@@ -403,18 +514,22 @@ test("sub_fetch SSE event carries device_id and blocked_by", async () => {
   const u = Users.create({ username: "alice", token: "abc" });
   const events: SyncEvent[] = [];
   const fakeHub: SseHub = {
-    broadcast: e => { events.push(e); },
+    broadcast: (e) => {
+      events.push(e);
+    },
     subscribe: () => ({ readable: new ReadableStream(), close: () => {} }),
     subscriberCount: () => 0,
   };
   const routes = subscriptionRoutes(env, fakeHub);
   await routes["/sub/:token"].GET(
     Object.assign(
-      new Request("http://x/sub/abc", { headers: { "user-agent": "happ/1.0", "x-hwid": "HW1" } }),
+      new Request("http://x/sub/abc", {
+        headers: { "user-agent": "happ/1.0", "x-hwid": "HW1" },
+      }),
       { params: { token: "abc" } },
     ),
   );
-  const device = (Devices.listForUser(u.id))[0]!;
+  const device = Devices.listForUser(u.id)[0]!;
   const e = events[0]!;
   if (e.type !== "sub_fetch") throw new Error("unreachable");
   expect(e.row.device_id).toBe(device.id);
@@ -424,17 +539,30 @@ test("sub_fetch SSE event carries device_id and blocked_by", async () => {
 test("ext-sub lines excluded when user has no assignment", async () => {
   const u = Users.create({ username: "alice", token: "abc" });
   const s = Servers.create({ name: "eu" });
-  Configs.create({ user_id: u.id, server_id: s.id, config: "vless://x", tag: null });
+  Configs.create({
+    user_id: u.id,
+    server_id: s.id,
+    config: "vless://x",
+    tag: null,
+  });
   const src = ExtSubSources.create({
-    name: "provX", url: "v1:enc",
-    user_agent: "ua", app_version: "", device_model: "", ver_os: "", device_os: "", hwid: "",
+    name: "provX",
+    url: "v1:enc",
+    user_agent: "ua",
+    app_version: "",
+    device_model: "",
+    ver_os: "",
+    device_os: "",
+    hwid: "",
   });
   ExtSubLinks.replaceForSource(src.id, [{ uri: "vless://ext1", label: null }]);
   // No assignment
 
   const routes = subscriptionRoutes(env);
   const res = await routes["/sub/:token"].GET(
-    Object.assign(new Request("http://x/sub/abc"), { params: { token: "abc" } }),
+    Object.assign(new Request("http://x/sub/abc"), {
+      params: { token: "abc" },
+    }),
   );
   const body = await res.text();
   expect(body).toBe("vless://x#eu");

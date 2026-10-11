@@ -2,9 +2,19 @@
 import { z } from "zod";
 import { parseCidr } from "./ip";
 
-export const usernameSchema = z.string().regex(/^[a-zA-Z0-9_]+$/, "must contain only letters, digits, and underscores");
+export const usernameSchema = z
+  .string()
+  .regex(
+    /^[a-zA-Z0-9_]+$/,
+    "must contain only letters, digits, and underscores",
+  );
 export const tokenSchema = z.string().min(1);
-export const tagSchema = z.string().regex(/^[a-zA-Z0-9 _.\-]+$/, "must contain only latin letters, digits, spaces, underscores, dots, and dashes");
+export const tagSchema = z
+  .string()
+  .regex(
+    /^[a-zA-Z0-9 _.\-]+$/,
+    "must contain only latin letters, digits, spaces, underscores, dots, and dashes",
+  );
 
 export const userCreateSchema = z.object({
   username: usernameSchema,
@@ -36,7 +46,7 @@ const configTransformsArray = z
   .array(configTransformSchema)
   .max(50)
   .refine(
-    rules => new Set(rules.map(r => r.tag)).size === rules.length,
+    (rules) => new Set(rules.map((r) => r.tag)).size === rules.length,
     "each tag may only be transformed once",
   );
 
@@ -89,9 +99,16 @@ export const extSubAssignSchema = z.object({
 });
 
 export const deviceBlockSchema = z.object({ blocked: z.boolean() });
-export const deviceLabelSchema = z.object({ label: z.string().max(200).nullable() });
+export const deviceLabelSchema = z.object({
+  label: z.string().max(200).nullable(),
+});
 export const ipBlockCreateSchema = z.object({
-  cidr: z.string().trim().min(1).max(64).refine(v => parseCidr(v) !== null, "must be a valid IP or CIDR"),
+  cidr: z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .refine((v) => parseCidr(v) !== null, "must be a valid IP or CIDR"),
   note: z.string().max(500).optional().nullable(),
 });
 
@@ -108,7 +125,12 @@ export type DeviceBlock = z.infer<typeof deviceBlockSchema>;
 export type DeviceLabel = z.infer<typeof deviceLabelSchema>;
 export type IpBlockCreate = z.infer<typeof ipBlockCreateSchema>;
 
-export type ParsedUrl = { host: string; port: number; web_base_path: string; use_tls: boolean };
+export type ParsedUrl = {
+  host: string;
+  port: number;
+  web_base_path: string;
+  use_tls: boolean;
+};
 
 export function parseThreeXUiUrl(raw: string): ParsedUrl | { error: string } {
   let u = raw.trim();
@@ -119,10 +141,12 @@ export function parseThreeXUiUrl(raw: string): ParsedUrl | { error: string } {
   } catch {
     return { error: "invalid URL format" };
   }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return { error: "must start with http:// or https://" };
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+    return { error: "must start with http:// or https://" };
   if (!parsed.hostname) return { error: "invalid URL format" };
   const useTls = parsed.protocol === "https:";
   const port = parsed.port ? Number(parsed.port) : useTls ? 443 : 80;
-  const path = parsed.pathname === "" || parsed.pathname === "/" ? "/" : parsed.pathname;
+  const path =
+    parsed.pathname === "" || parsed.pathname === "/" ? "/" : parsed.pathname;
   return { host: parsed.hostname, port, web_base_path: path, use_tls: useTls };
 }

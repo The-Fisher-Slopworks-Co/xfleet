@@ -7,7 +7,7 @@ const schema = z.object({
   ADMIN_USERNAME: z.string().min(1),
   ADMIN_PASSWORD_HASH: z.string().min(20),
   SESSION_SECRET: z.string().min(32),
-  MASTER_KEY: z.string().refine(v => {
+  MASTER_KEY: z.string().refine((v) => {
     try {
       return Buffer.from(v, "base64").length === 32;
     } catch {
@@ -16,7 +16,10 @@ const schema = z.object({
   }, "MASTER_KEY must be base64 of 32 bytes"),
   PROFILE_TITLE: z.string().default("VPN"),
   PUBLIC_BASE_URL: z.string().url(),
-  TRUST_PROXY: z.enum(["true", "false"]).default("false").transform(v => v === "true"),
+  TRUST_PROXY: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
   SUB_JOURNAL_RETENTION_DAYS: z.coerce.number().int().min(1).default(90),
 });
 
@@ -33,10 +36,14 @@ export type Env = {
   subJournalRetentionDays: number;
 };
 
-export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
+export function loadEnv(
+  source: Record<string, string | undefined> = process.env,
+): Env {
   const parsed = schema.safeParse(source);
   if (!parsed.success) {
-    const issues = parsed.error.issues.map(i => `  - ${i.path.join(".")}: ${i.message}`).join("\n");
+    const issues = parsed.error.issues
+      .map((i) => `  - ${i.path.join(".")}: ${i.message}`)
+      .join("\n");
     throw new Error(`Invalid environment:\n${issues}`);
   }
   const v = parsed.data;

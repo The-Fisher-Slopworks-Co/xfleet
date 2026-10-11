@@ -24,9 +24,18 @@ export function resolveDevice(signals: DeviceSignals): DeviceRow | null {
   const { userId, hwid, userAgent, ip } = signals;
 
   if (hwid) {
-    const device = Devices.upsertByHwid({ user_id: userId, hwid, ua: userAgent, ip });
+    const device = Devices.upsertByHwid({
+      user_id: userId,
+      hwid,
+      ua: userAgent,
+      ip,
+    });
     if (userAgent !== null && ip !== null) {
-      const superseded = Devices.findByFallback({ user_id: userId, ua: userAgent, ip });
+      const superseded = Devices.findByFallback({
+        user_id: userId,
+        ua: userAgent,
+        ip,
+      });
       if (superseded && !superseded.is_blocked) Devices.remove(superseded.id);
     }
     return device;

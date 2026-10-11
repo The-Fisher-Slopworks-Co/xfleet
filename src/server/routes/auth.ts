@@ -12,7 +12,8 @@ export function authRoutes(env: Env) {
       async POST(req: Request) {
         const body = await readJson<unknown>(req);
         const parsed = loginSchema.safeParse(body);
-        if (!parsed.success) return badRequest(zodToErrors(parsed.error.issues));
+        if (!parsed.success)
+          return badRequest(zodToErrors(parsed.error.issues));
         const { username, password } = parsed.data;
         if (username !== env.adminUsername) return unauthorized();
         const ok = await bcrypt.compare(password, env.adminPasswordHash);
@@ -23,7 +24,10 @@ export function authRoutes(env: Env) {
     },
     "/api/auth/logout": {
       POST() {
-        return json({ ok: true }, { headers: { "set-cookie": clearSessionCookie() } });
+        return json(
+          { ok: true },
+          { headers: { "set-cookie": clearSessionCookie() } },
+        );
       },
     },
     "/api/auth/me": {

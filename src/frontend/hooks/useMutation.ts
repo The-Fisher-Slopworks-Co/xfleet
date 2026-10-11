@@ -15,21 +15,29 @@ export function useMutation<TArg, TRes>(
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [topError, setTopError] = useState<string | null>(null);
 
-  const run = useCallback(async (arg: TArg) => {
-    setLoading(true); setFieldErrors({}); setTopError(null);
-    try {
-      const r = await fn(arg);
-      await opts.onSuccess?.(r);
-      return r;
-    } catch (e: any) {
-      if (e?.body?.errors) setFieldErrors(e.body.errors);
-      else setTopError(e?.body?.error ?? e?.message ?? "request failed");
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [fn, opts]);
+  const run = useCallback(
+    async (arg: TArg) => {
+      setLoading(true);
+      setFieldErrors({});
+      setTopError(null);
+      try {
+        const r = await fn(arg);
+        await opts.onSuccess?.(r);
+        return r;
+      } catch (e: any) {
+        if (e?.body?.errors) setFieldErrors(e.body.errors);
+        else setTopError(e?.body?.error ?? e?.message ?? "request failed");
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fn, opts],
+  );
 
-  const reset = useCallback(() => { setFieldErrors({}); setTopError(null); }, []);
+  const reset = useCallback(() => {
+    setFieldErrors({});
+    setTopError(null);
+  }, []);
   return { run, loading, fieldErrors, topError, reset };
 }

@@ -68,7 +68,11 @@ function parseV6(s: string): Uint8Array | null {
   if (!head || !tail) return null;
   const missing = 8 - head.length - tail.length;
   if (compressed ? missing < 1 : missing !== 0) return null;
-  const all = [...head, ...new Array<number>(compressed ? missing : 0).fill(0), ...tail];
+  const all = [
+    ...head,
+    ...new Array<number>(compressed ? missing : 0).fill(0),
+    ...tail,
+  ];
   const out = new Uint8Array(16);
   all.forEach((w, i) => {
     out[2 * i] = w >> 8;
@@ -99,22 +103,31 @@ function words(part: string, allowV4Tail: boolean): number[] | null {
 }
 
 function formatV6(b: Uint8Array): string {
-  const w = Array.from({ length: 8 }, (_, i) => (b[2 * i]! << 8) | b[2 * i + 1]!);
+  const w = Array.from(
+    { length: 8 },
+    (_, i) => (b[2 * i]! << 8) | b[2 * i + 1]!,
+  );
   // IPv4-mapped addresses keep the dotted tail, as Postgres prints them.
-  if (w.slice(0, 5).every(x => x === 0) && w[5] === 0xffff) {
+  if (w.slice(0, 5).every((x) => x === 0) && w[5] === 0xffff) {
     return `::ffff:${b.slice(12).join(".")}`;
   }
   // The longest run of two or more zero words collapses to "::"; the first run wins ties.
   let bestStart = -1;
   let bestLen = 1;
-  for (let i = 0; i < 8; ) {
-    if (w[i] !== 0) { i++; continue; }
+  for (let i = 0; i < 8;) {
+    if (w[i] !== 0) {
+      i++;
+      continue;
+    }
     let j = i;
     while (j < 8 && w[j] === 0) j++;
-    if (j - i > bestLen) { bestStart = i; bestLen = j - i; }
+    if (j - i > bestLen) {
+      bestStart = i;
+      bestLen = j - i;
+    }
     i = j;
   }
-  const hex = w.map(x => x.toString(16));
+  const hex = w.map((x) => x.toString(16));
   if (bestStart === -1) return hex.join(":");
   return `${hex.slice(0, bestStart).join(":")}::${hex.slice(bestStart + bestLen).join(":")}`;
 }

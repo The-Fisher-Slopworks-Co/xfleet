@@ -10,7 +10,8 @@ export function FormField(props: {
   return (
     <label className="block mb-4">
       <span className="block text-xs uppercase tracking-wider text-primary mb-1">
-        {props.label}{props.required && <span className="text-destructive ml-1">*</span>}
+        {props.label}
+        {props.required && <span className="text-destructive ml-1">*</span>}
       </span>
       {props.children}
       {props.error && props.error.length > 0 && (

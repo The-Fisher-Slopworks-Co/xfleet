@@ -15,8 +15,14 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
 
 export const api = {
   get: <T>(url: string) => request<T>(url),
-  post: <T>(url: string, body?: unknown) => request<T>(url, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
-  patch: <T>(url: string, body: unknown) => request<T>(url, { method: "PATCH", body: JSON.stringify(body) }),
-  put: <T>(url: string, body: unknown) => request<T>(url, { method: "PUT", body: JSON.stringify(body) }),
+  post: <T>(url: string, body?: unknown) =>
+    request<T>(url, {
+      method: "POST",
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  patch: <T>(url: string, body: unknown) =>
+    request<T>(url, { method: "PATCH", body: JSON.stringify(body) }),
+  put: <T>(url: string, body: unknown) =>
+    request<T>(url, { method: "PUT", body: JSON.stringify(body) }),
   del: <T>(url: string) => request<T>(url, { method: "DELETE" }),
 };
