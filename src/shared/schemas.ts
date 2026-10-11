@@ -2,17 +2,17 @@
 import { z } from "zod";
 import { parseCidr } from "./ip";
 
-export const usernameSchema = z
+const usernameSchema = z
   .string()
   .regex(
     /^[a-zA-Z0-9_]+$/,
     "must contain only letters, digits, and underscores",
   );
-export const tokenSchema = z.string().min(1);
-export const tagSchema = z
+const tokenSchema = z.string().min(1);
+const tagSchema = z
   .string()
   .regex(
-    /^[a-zA-Z0-9 _.\-]+$/,
+    /^[a-zA-Z0-9 _.-]+$/,
     "must contain only latin letters, digits, spaces, underscores, dots, and dashes",
   );
 
@@ -38,7 +38,7 @@ const urlString = z.string().min(1);
 // A per-panel transform rule: target a config by its tag (the inbound remark)
 // and override fields of the generated link. v1 overrides the port only; further
 // optional fields (host, sni, ...) can be added here without a migration.
-export const configTransformSchema = z.object({
+const configTransformSchema = z.object({
   tag: z.string().min(1),
   port: z.number().int().min(1).max(65535),
 });
@@ -112,18 +112,7 @@ export const ipBlockCreateSchema = z.object({
   note: z.string().max(500).optional().nullable(),
 });
 
-export type UserCreate = z.infer<typeof userCreateSchema>;
-export type ServerCreate = z.infer<typeof serverCreateSchema>;
-export type ConfigCreate = z.infer<typeof configCreateSchema>;
-export type ThreeXUiCreate = z.infer<typeof threeXUiCreateSchema>;
-export type ThreeXUiUpdate = z.infer<typeof threeXUiUpdateSchema>;
 export type ConfigTransform = z.infer<typeof configTransformSchema>;
-export type ExtSubSourceCreate = z.infer<typeof extSubSourceCreateSchema>;
-export type ExtSubSourceUpdate = z.infer<typeof extSubSourceUpdateSchema>;
-export type ExtSubAssign = z.infer<typeof extSubAssignSchema>;
-export type DeviceBlock = z.infer<typeof deviceBlockSchema>;
-export type DeviceLabel = z.infer<typeof deviceLabelSchema>;
-export type IpBlockCreate = z.infer<typeof ipBlockCreateSchema>;
 
 export type ParsedUrl = {
   host: string;

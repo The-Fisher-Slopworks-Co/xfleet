@@ -1,0 +1,51 @@
+# SPDX-FileCopyrightText: 2026 The Fisher Slopworks Co
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# The `bun run check` gate minus REUSE (reuse.yml runs that on its own),
+# defined once and called by both CI (pull requests) and Release (pushes to
+# main and version tags). A job whose `if:` excludes the current event still
+# shows up as a skipped check, so the image publish lives in its own workflow
+# rather than behind an `if:` here.
+#
+# Called with a local path, so a PR is gated by its own version of this file.
+name: Check
+
+on: workflow_call
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Type check & tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The same steps as `bun run check` and the lefthook pre-commit hook, so a
+      # commit made with `LEFTHOOK=0` cannot reach main unchecked. One step per
+      # tool keeps the failing one visible in the run summary.
+      - name: Type check
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Format
+        run: bun run format:check
+
+      - name: Unused code
+        run: bun run knip
+
+      - name: Run tests
+        run: bun run test

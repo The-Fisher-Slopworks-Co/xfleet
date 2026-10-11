@@ -42,15 +42,6 @@ export function get(id: number): ExtSubSourceRow | null {
     )
     .get({ id });
 }
-export function listByIds(ids: number[]): ExtSubSourceRow[] {
-  if (ids.length === 0) return [];
-  return db()
-    .query<ExtSubSourceRow, { ids: string }>(
-      `
-    SELECT * FROM ext_sub_sources WHERE id IN (SELECT value FROM json_each($ids))`,
-    )
-    .all({ ids: JSON.stringify(ids) });
-}
 export function create(attrs: ExtSubSourceAttrs): ExtSubSourceRow {
   return db()
     .query<ExtSubSourceRow, Bindings>(

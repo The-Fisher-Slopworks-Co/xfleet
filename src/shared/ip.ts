@@ -70,7 +70,7 @@ function parseV6(s: string): Uint8Array | null {
   if (compressed ? missing < 1 : missing !== 0) return null;
   const all = [
     ...head,
-    ...new Array<number>(compressed ? missing : 0).fill(0),
+    ...Array.from({ length: compressed ? missing : 0 }, () => 0),
     ...tail,
   ];
   const out = new Uint8Array(16);

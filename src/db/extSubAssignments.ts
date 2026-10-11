@@ -13,18 +13,6 @@ export function listSourceIdsForUser(userId: number): number[] {
     .map((r) => r.source_id);
 }
 
-export function listUserIdsForSource(sourceId: number): number[] {
-  return db()
-    .query<{ user_id: number }, { sourceId: number }>(
-      `
-    SELECT user_id FROM ext_sub_user_sources
-    WHERE source_id = $sourceId
-    ORDER BY user_id ASC`,
-    )
-    .all({ sourceId })
-    .map((r) => r.user_id);
-}
-
 export function setForUser(userId: number, sourceIds: number[]): void {
   const conn = db();
   conn.transaction(() => {

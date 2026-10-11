@@ -1,10 +1,10 @@
 // src/frontend/lib/api.ts
-export type ApiError = { errors: Record<string, string[]> } | { error: string };
+type ApiError = { errors: Record<string, string[]> } | { error: string };
 
 async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(url, {
     credentials: "same-origin",
-    headers: { "content-type": "application/json", ...(init.headers || {}) },
+    headers: { "content-type": "application/json", ...init.headers },
     ...init,
   });
   if (res.status === 204) return undefined as T;

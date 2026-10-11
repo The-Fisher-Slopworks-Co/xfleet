@@ -1,6 +1,6 @@
 // src/frontend/AuthGate.tsx
 import { useEffect, useState } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { api } from "./lib/api";
 import { AppShell } from "./AppShell";
 
