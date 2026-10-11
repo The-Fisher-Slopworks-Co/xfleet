@@ -2,101 +2,19 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-# Comment `/deploy` on a pull request to publish its head as the `:preview`
-# image. Members only, and never from a fork: the build runs the PR's own
-# Dockerfile with this job's write token.
-
-name: PR preview publish
+# `/deploy` on a pull request dispatches pr-preview.yml on its branch. This
+# half never checks out PR code; see the org's reusable workflow for why.
+name: PR deploy
 
 on:
   issue_comment:
     types: [created]
 
 permissions:
+  actions: write
   contents: read
-  packages: write
   pull-requests: write
 
 jobs:
-  preview:
-    name: Publish PR head as preview image
-    if: |
-      github.event.issue.pull_request &&
-      startsWith(github.event.comment.body, '/deploy') &&
-      contains(fromJson('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
-    runs-on: ubuntu-latest
-    concurrency:
-      group: pr-preview-publish-${{ github.event.issue.number }}
-      cancel-in-progress: true
-    steps:
-      - name: Acknowledge comment
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh api \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            "/repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions" \
-            -f content=rocket
-
-      - name: Resolve PR head
-        id: pr
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.issue.number }}
-        run: |
-          PR_DATA=$(gh api "repos/$REPO/pulls/$PR_NUMBER")
-          # The build runs the PR's Dockerfile with this job's write token, so
-          # only branches of this repository get built, never forks.
-          HEAD_REPO=$(echo "$PR_DATA" | jq -r .head.repo.full_name)
-          if [ "$HEAD_REPO" != "$REPO" ]; then
-            gh pr comment "$PR_NUMBER" --repo "$REPO" \
-              --body "❌ Preview images are built only from branches of this repository, not from forks (\`$HEAD_REPO\`)."
-            echo "::error::Refusing to build a fork PR ($HEAD_REPO)"
-            exit 1
-          fi
-          {
-            echo "sha=$(echo "$PR_DATA" | jq -r .head.sha)"
-            echo "branch=$(echo "$PR_DATA" | jq -r .head.ref)"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ steps.pr.outputs.sha }}
-          persist-credentials: false
-
-      - name: Lowercase image name
-        id: img
-        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push preview image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.img.outputs.name }}:preview
-          cache-from: type=gha,scope=preview
-          cache-to: type=gha,mode=max,scope=preview,ignore-error=true
-
-      - name: Comment success
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: ${{ steps.pr.outputs.branch }}
-          SHA: ${{ steps.pr.outputs.sha }}
-          IMAGE: ${{ steps.img.outputs.name }}
-          PR_NUMBER: ${{ github.event.issue.number }}
-        run: |
-          gh pr comment "$PR_NUMBER" \
-            --body "✅ Preview image published: \`$IMAGE:preview\` from branch \`$BRANCH\` at \`$SHA\`."
+  pr-deploy:
+    uses: The-Fisher-Slopworks-Co/.github/.github/workflows/pr-deploy.yml@main
