@@ -49,12 +49,12 @@ The SSE endpoint `/api/admin/events` requires `proxy_buffering off;` (nginx) or 
 
 ## Docker
 
-A production example lives in `docker-compose.prod.yml`.
+A production example lives in `docker-compose.yml`.
 
 ```sh
 cp .env.example .env
 # fill the same secrets as the non-docker setup
-docker compose -f docker-compose.prod.yml up -d
+docker compose up -d
 ```
 
 The app runs migrations automatically on container start and publishes port 3000. The database is stored in the `xfleet_data` volume at `/app/data/xfleet.db`. Stop the container before copying it for a backup — the database runs in WAL mode, so a copy taken while it is live can be inconsistent. Put your own reverse proxy (nginx/Caddy/etc.) in front — remember `proxy_buffering off;` for the SSE endpoint, and bind to `127.0.0.1:3000` in the compose file if you don't want port 3000 publicly exposed on the host.
